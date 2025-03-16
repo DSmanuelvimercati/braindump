@@ -1,33 +1,44 @@
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+from transformers import AutoTokenizer, pipeline
 
-# Specifica il checkpoint del modello scelto
-checkpoint = "HuggingFaceTB/SmolLM-360M-Instruct"
-
-# Imposta il device: usa "cuda" se hai una GPU, altrimenti "cpu"
+model_id = "google/gemma-3-1b-it"
 device = "cuda" if torch.cuda.is_available() else "cpu"
-
-# Carica il tokenizer e il modello
-tokenizer = AutoTokenizer.from_pretrained(checkpoint)
-model = AutoModelForCausalLM.from_pretrained(checkpoint).to(device)
-
-# Se usi la pipeline su GPU, specifica device=0, altrimenti -1 per la CPU
 gen_device = 0 if device == "cuda" else -1
+
+tokenizer = AutoTokenizer.from_pretrained(model_id)
 generator = pipeline(
-    "text-generation", 
-    model=model, 
-    tokenizer=tokenizer, 
-    device=gen_device
+    "text-generation",
+    model=model_id,
+    tokenizer=tokenizer,
+    device=gen_device,
+    torch_dtype=torch.bfloat16
 )
 
-def generate_text(prompt, max_new_tokens=500, temperature=0.7, top_p=0.95):
+def generate_text(prompt, max_new_tokens=1024, temperature=0.7, top_p=0.95):
+    """
+    Converte il prompt in formato chat, lo passa alla pipeline Gemma 3 e restituisce
+    il contenuto dell'ultimo messaggio dell'assistente.
+    """
+    messages = [
+        [
+            {
+                "role": "system",
+                "content": [{"type": "text", "text": "You are a helpful assistant."}]
+            },
+            {
+                "role": "user",
+                "content": [{"type": "text", "text": prompt}]
+            }
+        ]
+    ]
+    
     output = generator(
-        prompt, 
-        num_return_sequences=1, 
-        max_new_tokens=max_new_tokens, 
-        temperature=temperature, 
+        messages,
+        max_new_tokens=max_new_tokens,
+        temperature=temperature,
         top_p=top_p,
         do_sample=True
     )
-    return output[0]['generated_text']
-
+    
+    # Assume che output[0]['generated_text'] sia una lista di messaggi
+    return output[0][0]['generated_text'][-1]['content']
