@@ -1,15 +1,12 @@
 import os
 import yaml
 import markdown
+from modules.llm import generate_text
 
 def read_markdown_file(filepath):
-    """
-    Legge un file Markdown e ne estrae il frontmatter YAML (se presente) e il contenuto.
-    """
     with open(filepath, 'r', encoding='utf-8') as f:
         lines = f.readlines()
     
-    # Supponiamo che il frontmatter sia racchiuso tra '---'
     if lines[0].strip() == '---':
         end_index = lines[1:].index('---\n') + 1
         frontmatter = yaml.safe_load("".join(lines[1:end_index]))
@@ -21,9 +18,6 @@ def read_markdown_file(filepath):
     return frontmatter, content
 
 def index_markdown_files(directory='data'):
-    """
-    Scansiona la directory 'data' e legge tutti i file Markdown.
-    """
     indexed_data = {}
     for filename in os.listdir(directory):
         if filename.endswith('.md'):
@@ -37,15 +31,15 @@ def index_markdown_files(directory='data'):
 
 def identify_gaps(text):
     """
-    Utilizza il LLM locale per analizzare il testo e identificare lacune.
-    Per ora restituisce una placeholder.
+    Usa il LLM per analizzare il testo e identificare lacune.
+    Ad esempio, il prompt può essere "Identifica eventuali lacune informative in questo testo: ..."
     """
-    # In futuro qui integrerai il tuo modello di LLM (es. HuggingFace pipeline)
-    return f"Lacuna individuata in: {text[:30]}..."
+    prompt = f"Identifica eventuali lacune informative in questo testo:\n\n{text}\n\nLacune:"
+    return generate_text(prompt)
 
 def generate_question(gap_description):
     """
-    Utilizza il LLM per generare una domanda mirata a colmare la lacuna.
-    Per ora restituisce una placeholder.
+    Usa il LLM per generare una domanda mirata a colmare la lacuna individuata.
     """
-    return f"Domanda per colmare la lacuna: {gap_description}"
+    prompt = f"Genera una domanda che possa colmare la seguente lacuna informativa: {gap_description}"
+    return generate_text(prompt)
