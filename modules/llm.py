@@ -1,44 +1,45 @@
-import torch
-from transformers import AutoTokenizer, pipeline
+import requests
+import json
+from modules.ollama_config import OLLAMA_GENERATE_ENDPOINT, DEFAULT_MODEL, DEFAULT_PARAMS
 
-model_id = "google/gemma-3-1b-it"
-device = "cuda" if torch.cuda.is_available() else "cpu"
-gen_device = 0 if device == "cuda" else -1
-
-tokenizer = AutoTokenizer.from_pretrained(model_id)
-generator = pipeline(
-    "text-generation",
-    model=model_id,
-    tokenizer=tokenizer,
-    device=gen_device,
-    torch_dtype=torch.bfloat16
-)
-
-def generate_text(prompt, max_new_tokens=1024, temperature=0.7, top_p=0.95):
+def generate_text(prompt, max_new_tokens=None, temperature=None, top_p=None):
     """
-    Converte il prompt in formato chat, lo passa alla pipeline Gemma 3 e restituisce
-    il contenuto dell'ultimo messaggio dell'assistente.
+    Invia il prompt all'API di Ollama e restituisce la risposta generata.
+    
+    Args:
+        prompt: Il testo da inviare al modello
+        max_new_tokens: Numero massimo di token da generare (override del valore predefinito)
+        temperature: Temperatura per la generazione (override del valore predefinito)
+        top_p: Parametro top_p per la generazione (override del valore predefinito)
+    
+    Returns:
+        La risposta generata dal modello
     """
-    messages = [
-        [
-            {
-                "role": "system",
-                "content": [{"type": "text", "text": "You are a helpful assistant."}]
-            },
-            {
-                "role": "user",
-                "content": [{"type": "text", "text": prompt}]
+    try:
+        # Utilizzo i parametri forniti o i default da ollama_config
+        max_tokens = max_new_tokens or DEFAULT_PARAMS["max_tokens"]
+        temp = temperature or DEFAULT_PARAMS["temperature"]
+        topp = top_p or DEFAULT_PARAMS["top_p"]
+        
+        payload = {
+            "model": DEFAULT_MODEL,
+            "prompt": prompt,
+            "stream": False,
+            "options": {
+                "temperature": temp,
+                "top_p": topp,
+                "num_predict": max_tokens
             }
-        ]
-    ]
-    
-    output = generator(
-        messages,
-        max_new_tokens=max_new_tokens,
-        temperature=temperature,
-        top_p=top_p,
-        do_sample=True
-    )
-    
-    # Assume che output[0]['generated_text'] sia una lista di messaggi
-    return output[0][0]['generated_text'][-1]['content']
+        }
+        
+        response = requests.post(OLLAMA_GENERATE_ENDPOINT, json=payload)
+        if response.status_code == 200:
+            result = response.json()
+            return result.get("response", "")
+        else:
+            print(f"Errore nella chiamata a Ollama: {response.status_code}")
+            print(f"Dettagli: {response.text}")
+            return "Si è verificato un errore nella generazione del testo."
+    except Exception as e:
+        print(f"Eccezione durante la chiamata a Ollama: {str(e)}")
+        return "Si è verificato un errore nella connessione a Ollama."
