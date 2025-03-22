@@ -1,13 +1,13 @@
 # main.py
 
-from modules.chat import start_interview
+from modules.multiagent_interview import start_multiagent_interview
 
 def main():
     """
-    Funzione principale che avvia il sistema di Braindump e Agente Intervistatore.
+    Funzione principale che avvia il sistema di Braindump con agenti multipli.
     """
-    print("Avvio del sistema di Braindump e Agente Intervistatore...")
-    start_interview()
+    print("Avvio del sistema di Braindump con agenti multipli...")
+    start_multiagent_interview()
 
 if __name__ == '__main__':
     main()
