@@ -1,0 +1,146 @@
+{
+    "test_filter_llm_response.TestFilterLlmResponse.test_filter_llm_response_fallback": [
+        {
+            "time": 0.0010008811950683594,
+            "timestamp": "2025-03-22T16:42:36.841976"
+        }
+    ],
+    "test_filter_llm_response.TestFilterLlmResponse.test_filter_llm_response_invalid": [
+        {
+            "time": 0.001514434814453125,
+            "timestamp": "2025-03-22T16:42:36.856470"
+        }
+    ],
+    "test_filter_llm_response.TestFilterLlmResponse.test_filter_llm_response_placeholder": [
+        {
+            "time": 0.0006916522979736328,
+            "timestamp": "2025-03-22T16:42:36.871430"
+        }
+    ],
+    "test_filter_llm_response.TestFilterLlmResponse.test_filter_llm_response_valid": [
+        {
+            "time": 0.0006492137908935547,
+            "timestamp": "2025-03-22T16:42:36.884361"
+        }
+    ],
+    "test_guidelines.TestGuidelines.test_add_to_guidelines": [
+        {
+            "time": 22.891371250152588,
+            "timestamp": "2025-03-22T16:42:59.787878"
+        }
+    ],
+    "test_guidelines.TestGuidelines.test_get_guidelines": [
+        {
+            "time": 0.0020112991333007812,
+            "timestamp": "2025-03-22T16:42:59.799658"
+        }
+    ],
+    "test_guidelines.TestGuidelines.test_initialize_temp_guidelines_from_permanent": [
+        {
+            "time": 0.004056692123413086,
+            "timestamp": "2025-03-22T16:42:59.812323"
+        }
+    ],
+    "test_guidelines.TestGuidelines.test_initialize_temp_guidelines_new": [
+        {
+            "time": 0.002645730972290039,
+            "timestamp": "2025-03-22T16:42:59.823665"
+        }
+    ],
+    "test_guidelines.TestGuidelines.test_save_permanent_guidelines": [
+        {
+            "time": 0.0036573410034179688,
+            "timestamp": "2025-03-22T16:42:59.838057"
+        }
+    ],
+    "test_interviewer.TestInterviewer.test_generate_first_question": [
+        {
+            "time": 0.002602815628051758,
+            "timestamp": "2025-03-22T16:42:59.851315"
+        }
+    ],
+    "test_interviewer.TestInterviewer.test_get_current_guidelines_fallback": [
+        {
+            "time": 0.0005655288696289062,
+            "timestamp": "2025-03-22T16:42:59.863745"
+        }
+    ],
+    "test_interviewer.TestInterviewer.test_get_current_guidelines_from_permanent_file": [
+        {
+            "time": 0.002981901168823242,
+            "timestamp": "2025-03-22T16:42:59.878447"
+        }
+    ],
+    "test_interviewer.TestInterviewer.test_get_current_guidelines_from_temp_file": [
+        {
+            "time": 0.0021369457244873047,
+            "timestamp": "2025-03-22T16:42:59.895452"
+        }
+    ],
+    "test_interviewer.TestInterviewer.test_interviewer_initialization": [
+        {
+            "time": 0.0008170604705810547,
+            "timestamp": "2025-03-22T16:42:59.916688"
+        }
+    ],
+    "test_llm_handler.TestLlmHandler.test_is_valid_question": [
+        {
+            "time": 8.440017700195312e-05,
+            "timestamp": "2025-03-22T16:42:59.932846"
+        }
+    ],
+    "test_llm_handler.TestLlmHandler.test_is_valid_question_with_unwanted_elements": [
+        {
+            "time": 9.322166442871094e-05,
+            "timestamp": "2025-03-22T16:42:59.946710"
+        }
+    ],
+    "test_logger.TestColoredLogger.test_log_method": [
+        {
+            "time": 8.344650268554688e-05,
+            "timestamp": "2025-03-22T16:42:59.963531"
+        }
+    ],
+    "test_logger.TestColoredLogger.test_method_calls_log": [
+        {
+            "time": 8.153915405273438e-05,
+            "timestamp": "2025-03-22T16:42:59.976848"
+        }
+    ],
+    "test_logger.TestColoredLogger.test_specialized_methods": [
+        {
+            "time": 8.559226989746094e-05,
+            "timestamp": "2025-03-22T16:42:59.991424"
+        }
+    ],
+    "test_moderator.TestModerator.test_present_suggestion_with_numeric_confidence": [
+        {
+            "time": 0.0014004707336425781,
+            "timestamp": "2025-03-22T16:43:00.005561"
+        }
+    ],
+    "test_moderator.TestModerator.test_present_suggestion_with_string_confidence": [
+        {
+            "time": 0.0027756690979003906,
+            "timestamp": "2025-03-22T16:43:00.028021"
+        }
+    ],
+    "test_moderator.TestModerator.test_present_suggestion_without_sources": [
+        {
+            "time": 0.0017910003662109375,
+            "timestamp": "2025-03-22T16:43:00.053773"
+        }
+    ],
+    "test_moderator.TestModerator.test_process_user_input_with_invalid_json": [
+        {
+            "time": 0.0042209625244140625,
+            "timestamp": "2025-03-22T16:43:00.076323"
+        }
+    ],
+    "test_moderator.TestModerator.test_process_user_input_with_valid_json": [
+        {
+            "time": 0.001965045928955078,
+            "timestamp": "2025-03-22T16:43:00.094513"
+        }
+    ]
+}

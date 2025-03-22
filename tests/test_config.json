@@ -1,5 +1,5 @@
 {
-    "run_all_tests": false,
+    "run_all_tests": true,
     "tests_to_run": [
         "TestColoredLogger.test_log_method",
         "TestLlmHandler.test_is_valid_question"

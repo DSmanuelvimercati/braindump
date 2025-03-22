@@ -26,10 +26,18 @@ class TestFilterResult(unittest.TextTestResult):
         super(TestFilterResult, self).__init__(*args, **kwargs)
         self.test_timings = {}
         self.skipped_tests = []
+        # Nuovi contatori per tracciare il progresso
+        self.total_tests = 0
+        self.completed_tests = 0
+        self.start_time_global = time.time()
     
     def startTest(self, test):
         """Inizia a misurare il tempo del test."""
         test_name = test.id()
+        
+        # Calcola il numero totale di test se è il primo test
+        if self.total_tests == 0:
+            self.count_total_tests(test)
         
         # Verifica se il test deve essere eseguito
         if not should_run_test(test_name):
@@ -38,6 +46,20 @@ class TestFilterResult(unittest.TextTestResult):
         
         # Ottieni la stima del tempo
         avg_time, min_time, max_time, count = get_test_time_estimate(test_name)
+        
+        # Mostra il progresso complessivo
+        elapsed_total = time.time() - self.start_time_global
+        remaining_tests = self.total_tests - self.completed_tests - len(self.skipped_tests)
+        test_parts = test_name.split('.')
+        test_display_name = f"{test_parts[-2]}.{test_parts[-1]}"
+        
+        progress_msg = f"[{self.completed_tests + 1}/{self.total_tests}] Esecuzione: {test_display_name}"
+        if remaining_tests > 0:
+            progress_msg += f" | Rimanenti: {remaining_tests} test"
+        if self.completed_tests > 0:
+            progress_msg += f" | Tempo trascorso: {elapsed_total:.2f}s"
+        
+        TestLogger.section(progress_msg)
         
         # Registra l'inizio del test
         if avg_time is not None:
@@ -63,6 +85,9 @@ class TestFilterResult(unittest.TextTestResult):
         # Aggiorna lo storico dei tempi di esecuzione
         update_test_history(test_name, elapsed_time)
         
+        # Incrementa il contatore dei test completati
+        self.completed_tests += 1
+        
         super(TestFilterResult, self).stopTest(test)
     
     def addSuccess(self, test):
@@ -87,6 +112,45 @@ class TestFilterResult(unittest.TextTestResult):
             error_message = self._exc_info_to_string(err, test)
             TestLogger.test_failure(test_name, self.test_timings[test_name], error_message)
         super(TestFilterResult, self).addFailure(test, err)
+    
+    def count_total_tests(self, test):
+        """Conta il numero totale di test che saranno eseguiti."""
+        config = load_config()
+        test_suite = test.id().split('.')[0]  # Ottiene la classe di test
+        loader = unittest.defaultTestLoader
+        
+        if config["run_all_tests"]:
+            # Carica tutti i test
+            start_dir = os.path.dirname(os.path.abspath(__file__))
+            full_suite = loader.discover(start_dir, pattern="test_*.py")
+            self.total_tests = self.count_tests_in_suite(full_suite)
+        else:
+            # Conta solo i test selezionati
+            self.total_tests = len(config["tests_to_run"])
+            
+            # Aggiungi i test delle classi selezionate
+            for class_name in config["test_classes"]:
+                try:
+                    test_module_name = f"tests.{class_name.lower().replace('test', 'test_')}"
+                    test_module = importlib.import_module(test_module_name)
+                    test_class = getattr(test_module, class_name)
+                    class_suite = loader.loadTestsFromTestCase(test_class)
+                    self.total_tests += self.count_tests_in_suite(class_suite)
+                except (ImportError, AttributeError):
+                    pass  # Ignora classi non trovate
+        
+        TestLogger.section(f"AVVIO ESECUZIONE DI {self.total_tests} TEST")
+    
+    def count_tests_in_suite(self, suite):
+        """Conta ricorsivamente il numero di test in una suite."""
+        count = 0
+        for test in suite:
+            if isinstance(test, unittest.TestSuite):
+                count += self.count_tests_in_suite(test)
+            else:
+                if should_run_test(test.id()):
+                    count += 1
+        return count
 
 
 class FilteredTestRunner(unittest.TextTestRunner):
@@ -112,6 +176,11 @@ class FilteredTestRunner(unittest.TextTestRunner):
         
         # Mostra il riepilogo
         TestLogger.section("STATISTICHE SUI TEMPI DI ESECUZIONE")
+        
+        # Mostra riepilogo dei test completati
+        TestLogger.info(f"Test completati: {result.completed_tests}/{result.total_tests}")
+        if result.skipped_tests:
+            TestLogger.info(f"Test saltati: {len(result.skipped_tests)}")
         
         # Ordina i test per tempo di esecuzione (dal più lento al più veloce)
         sorted_times = sorted(result.test_timings.items(), key=lambda x: x[1], reverse=True)
