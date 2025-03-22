@@ -1,5 +1,5 @@
 import os
-from config import SYSTEM_PROMPT, CONCEPTS_DIR, TEMP_CONCEPTS_DIR, INFORMATION_DIR, TEMP_INFORMATION_DIR, DEFAULT_TOPICS, load_braindump_data
+from config import SYSTEM_PROMPT, CONCEPTS_DIR, INFORMATION_DIR, TEMP_FOLDER, load_braindump_data
 from modules.llm import generate_text
 
 def get_topic_suggestions():
@@ -14,10 +14,6 @@ def get_topic_suggestions():
             if filename.endswith(".md"):
                 topic_name = filename.replace(".md", "")
                 topics.append(topic_name)
-    
-    # Se non ci sono file in concepts_dir, usa i DEFAULT_TOPICS come fallback
-    if not topics:
-        return DEFAULT_TOPICS
     
     return topics
 

@@ -1,12 +1,19 @@
 import os
 import time
-from config import TEMP_INFORMATION_DIR, TEMP_CONCEPTS_DIR
+from config import TEMP_FOLDER, INFORMATION_DIR
 
 def save_braindump_entry(content, topic):
     """
     Salva (o aggiunge) una coppia domanda–risposta nel file Markdown relativo al topic,
     salvandolo nella cartella temporanea delle informazioni.
     """
+    # Definisci le directory temporanee
+    TEMP_INFORMATION_DIR = os.path.join(TEMP_FOLDER, "informazioni")
+    
+    # Assicurati che la directory esista
+    if not os.path.exists(TEMP_INFORMATION_DIR):
+        os.makedirs(TEMP_INFORMATION_DIR)
+    
     file_name = f"{topic.replace(' ', '_')}.md"
     file_path = os.path.join(TEMP_INFORMATION_DIR, file_name)
     
@@ -36,6 +43,13 @@ def update_summary(pair_text, topic, llm_function):
       
     Il prompt non deve aggiungere informazioni non presenti nella coppia.
     """
+    # Definisci la directory temporanea per i concetti
+    TEMP_CONCEPTS_DIR = os.path.join(TEMP_FOLDER, "concetti")
+    
+    # Assicurati che la directory esista
+    if not os.path.exists(TEMP_CONCEPTS_DIR):
+        os.makedirs(TEMP_CONCEPTS_DIR)
+    
     # Estrai la domanda e la risposta separatamente
     parts = pair_text.split("Risposta:")
     if len(parts) < 2:
@@ -60,7 +74,6 @@ def update_summary(pair_text, topic, llm_function):
     
     summary = llm_function(summary_prompt)
     file_name = f"{topic.replace(' ', '_')}_sommario.md"
-    from config import TEMP_CONCEPTS_DIR
     file_path = os.path.join(TEMP_CONCEPTS_DIR, file_name)
     
     if os.path.exists(file_path):

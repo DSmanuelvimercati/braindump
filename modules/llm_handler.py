@@ -1,5 +1,6 @@
 import time
 from modules.llm import generate_text
+from modules.logger import ColoredLogger
 
 def timed_generate_text(prompt, description=""):
     """
@@ -18,42 +19,70 @@ def timed_generate_text(prompt, description=""):
     print(f"[{description}] LLM call took {duration:.2f} seconds")
     return result
 
-def filter_llm_response(response, chosen_topic="", max_length=150, previous_questions=None):
+def filter_llm_response(response, topic):
     """
-    Filtra e valida la risposta dell'LLM per assicurarsi che sia una domanda valida.
+    Filtra la risposta dell'LLM per garantire che sia valida.
     
     Args:
-        response (str): La risposta dell'LLM da filtrare
-        chosen_topic (str): Il topic corrente
-        max_length (int): La lunghezza massima consentita per la risposta
-        previous_questions (list): Lista delle domande precedenti per evitare ripetizioni
+        response (str): La risposta dell'LLM
+        topic (str): Il topic corrente
         
     Returns:
-        str: La risposta filtrata e validata
+        str: La risposta filtrata
     """
-    # Verifica se il risultato è una domanda valida
-    if (len(response) > max_length or 
-        "**" in response or 
-        "# " in response or 
-        ":" in response.split("?")[0]):
-        
-        print("ATTENZIONE: Rilevata risposta non valida dall'LLM. Riprovo con una richiesta più semplice...")
-        
-        # Genera una richiesta più semplice
-        avoid_questions = ""
-        if previous_questions and len(previous_questions) > 0:
-            questions_to_avoid = previous_questions[-5:] if len(previous_questions) > 5 else previous_questions
-            avoid_questions = f"NON ripetere queste domande che sono già state poste: {', '.join(questions_to_avoid)}"
-        
-        simplified_prompt = (
-            f"Genera SOLO UNA domanda breve (massimo 15 parole) sul topic '{chosen_topic}' in italiano. "
-            "NON aggiungere altri testi o spiegazioni. Usa solo la lingua italiana. "
-            f"{avoid_questions}"
-        )
-        
-        response = timed_generate_text(simplified_prompt, "retry question")
+    # Controlla se la risposta contiene placeholder
+    if "[topic]" in response or "[argomento]" in response:
+        ColoredLogger.warning(f"La risposta contiene placeholder: {response}")
+        response = response.replace("[topic]", topic).replace("[argomento]", topic)
     
-    return response.strip()
+    # Verifica se la risposta è una domanda valida
+    if not is_valid_question(response) or len(response.split()) > 20:
+        ColoredLogger.warning(f"Risposta non valida: {response}")
+        
+        # Prova a generare una risposta più semplice
+        prompt = f"""
+        Genera UNA sola domanda personale riguardante il topic "{topic}".
+        
+        LINEE GUIDA:
+        - La domanda deve essere in italiano
+        - La domanda deve essere specifica e personale, NON generica
+        - Evita domande generiche come "Cosa ne pensi di {topic}?"
+        - Non usare MAI placeholder come [topic] o [argomento]
+        - Usa direttamente il termine "{topic}" nella domanda se necessario
+        - La domanda deve essere breve (15-20 parole massimo)
+        - La domanda deve richiedere una risposta basata su esperienze o opinioni personali
+        
+        Esempi di domande VALIDE:
+        - "Come hai sviluppato la tua passione per la filosofia durante gli anni universitari?"
+        - "Quali progetti lavorativi ti hanno dato maggiore soddisfazione nell'ultimo anno?"
+        
+        Esempi di domande NON VALIDE:
+        - "Cosa ne pensi di [topic]?" (troppo generica e usa placeholder)
+        - "Parlami di anagrafica." (non è una vera domanda)
+        - "Quali sono gli aspetti più interessanti dell'argomento che stiamo trattando?" (troppo vaga)
+        
+        Rispondi SOLO con la domanda, senza altre spiegazioni.
+        """
+        
+        new_response = generate_text(prompt)
+        
+        # Verifica la nuova risposta
+        if is_valid_question(new_response) and "[topic]" not in new_response and "[argomento]" not in new_response:
+            return new_response
+        
+        # Se anche il secondo tentativo fallisce, usa una domanda generica di backup
+        ColoredLogger.warning("Secondo tentativo fallito, uso domanda di backup")
+        backup_questions = [
+            f"Qual è la tua esperienza personale con {topic}?",
+            f"Cosa ti ha portato ad interessarti a {topic}?",
+            f"Come hai sviluppato le tue conoscenze su {topic}?",
+            f"Quali aspetti di {topic} ti interessano maggiormente?",
+            f"Come si collega {topic} alla tua vita quotidiana?"
+        ]
+        import random
+        return random.choice(backup_questions)
+    
+    return response
 
 def extract_json_from_response(response):
     """
@@ -80,4 +109,42 @@ def extract_json_from_response(response):
     except Exception as e:
         print(f"Errore nell'analisi JSON: {e}")
         print(f"Risposta ricevuta: {response}")
-        return [] 
+        return []
+
+def is_valid_question(text):
+    """
+    Verifica se il testo è una domanda valida.
+    
+    Args:
+        text (str): Il testo da verificare
+        
+    Returns:
+        bool: True se è una domanda valida, False altrimenti
+    """
+    if not text:
+        return False
+    
+    # Pulisci la risposta
+    text = text.strip()
+    
+    # Verifica se termina con un punto interrogativo
+    if not text.endswith("?"):
+        return False
+    
+    # Controlla la lunghezza
+    words = text.split()
+    if len(words) < 3 or len(words) > 30:
+        return False
+    
+    # Controlla elementi indesiderati
+    unwanted_elements = [
+        "**", "# ", 
+        "la tua richiesta", "come vedrai", "ecco", "ho capito",
+        "secondo le informazioni", "restituisci", "genera"
+    ]
+    
+    for element in unwanted_elements:
+        if element in text.lower():
+            return False
+    
+    return True 

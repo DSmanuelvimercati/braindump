@@ -24,16 +24,33 @@ def get_relevant_context(chosen_topic, conversation_history):
         print("Nessun file di contesto disponibile.")
         return []
     
-    # Se abbiamo pochi file, possiamo analizzarli tutti insieme
-    if len(all_files) <= 20:
-        return evaluate_files_relevance(all_files, chosen_topic, conversation_history)
+    # Cerchiamo esplicitamente il file di definizione del concetto per il topic scelto
+    # Questo file deve essere sempre incluso nei risultati
+    concept_file = None
+    topic_lower = chosen_topic.lower()
     
-    # Altrimenti, li analizziamo a blocchi
+    for f in all_files:
+        basename = os.path.basename(f).replace('.md', '').lower()
+        if basename == topic_lower and CONCEPTS_DIR in f:
+            concept_file = f
+            print(f"Trovato file di definizione del concetto per '{chosen_topic}': {os.path.basename(concept_file)}")
+            break
+    
+    # Se abbiamo pochi file, possiamo analizzarli tutti insieme
     relevant_files = []
-    for i in range(0, len(all_files), 20):
-        chunk = all_files[i:i+20]
-        relevant_chunk = evaluate_files_relevance(chunk, chosen_topic, conversation_history)
-        relevant_files.extend(relevant_chunk)
+    if len(all_files) <= 20:
+        relevant_files = evaluate_files_relevance(all_files, chosen_topic, conversation_history)
+    else:
+        # Altrimenti, li analizziamo a blocchi
+        for i in range(0, len(all_files), 20):
+            chunk = all_files[i:i+20]
+            relevant_chunk = evaluate_files_relevance(chunk, chosen_topic, conversation_history)
+            relevant_files.extend(relevant_chunk)
+    
+    # Assicuriamoci che il file di definizione del concetto sia incluso nei risultati
+    if concept_file and concept_file not in relevant_files:
+        relevant_files.append(concept_file)
+        print(f"Aggiunto forzatamente il file di definizione del concetto '{os.path.basename(concept_file)}'")
     
     # Stampa debug dei file rilevanti selezionati
     if relevant_files:

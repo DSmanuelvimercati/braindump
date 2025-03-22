@@ -1,157 +1,185 @@
-from modules.llm_handler import timed_generate_text
+"""
+Gestore delle risposte utente: interpreta e classifica le risposte dell'utente con analisi semantica LLM.
+"""
 
-def interpret_user_answer(answer):
+from modules.llm_handler import timed_generate_text, filter_llm_response
+from modules.logger import ColoredLogger
+import re
+import json
+
+def interpret_user_answer(user_input):
     """
-    Interpreta la risposta dell'utente per comandi rapidi base.
+    Interpreta la risposta base dell'utente usando l'LLM per un'analisi semantica.
     
     Args:
-        answer (str): La risposta dell'utente
+        user_input (str): L'input dell'utente
         
     Returns:
-        str: Il tipo di risposta identificato
-            - "NO_ANSWER" se l'utente scrive "skip" o è vuoto
-            - "HELP" se l'utente chiede aiuto
-            - "VALID_ANSWER" in tutti gli altri casi
+        str: Il tipo di risposta rilevato
     """
-    if not answer or answer.strip().lower() in ["skip", "salta"]:
+    # Per risposte semplici e comuni, usa ancora l'approccio basato su regole per efficienza
+    # Normalizza l'input
+    user_input_lower = user_input.strip().lower()
+    
+    # Risposte vuote o skip
+    if not user_input_lower or user_input_lower in ["skip", "passa", "salta", "s", "next", "n"]:
         return "NO_ANSWER"
-    if answer.strip().lower() in ["aiuto", "help", "?"]:
+    
+    # Richieste di aiuto
+    if user_input_lower in ["help", "aiuto", "?", "aiutami"]:
         return "HELP"
-    return "VALID_ANSWER"
-
-def interpret_meta_response(answer, current_topic, current_question):
+    
+    # Per risposte più complesse, utilizza l'LLM per l'analisi semantica
+    prompt = f"""
+    Analizza la seguente risposta dell'utente e classifica il tipo di richiesta:
+    
+    Risposta: "{user_input}"
+    
+    Considera le seguenti categorie:
+    1. NO_ANSWER - L'utente vuole saltare la domanda o non fornisce una risposta
+    2. HELP - L'utente chiede aiuto o assistenza
+    3. STANDARD - L'utente fornisce una risposta standard alla domanda
+    
+    Restituisci SOLO UNA di queste parole chiave: "NO_ANSWER", "HELP" o "STANDARD"
     """
-    Analizza la risposta dell'utente per identificare comandi meta come cambiamenti di topic.
+    
+    response = timed_generate_text(prompt, "classificazione risposta base").strip().upper()
+    
+    # Verifica che la risposta sia una delle categorie previste
+    if response in ["NO_ANSWER", "HELP", "STANDARD"]:
+        return response
+    
+    # Fallback in caso di risposta non riconosciuta
+    return "STANDARD"
+
+def interpret_meta_response(user_input, current_topic, current_question):
+    """
+    Analizza la risposta dell'utente per capire se è una meta-richiesta utilizzando l'LLM.
     
     Args:
-        answer (str): La risposta dell'utente
+        user_input (str): L'input dell'utente
         current_topic (str): Il topic corrente
         current_question (str): La domanda corrente
         
     Returns:
-        dict: Un dizionario con i risultati dell'analisi:
-            - "type": il tipo di risposta (DIRECT, CHANGE_TOPIC, IRRELEVANT, SUGGEST_QUESTION)
-            - "content": il contenuto della risposta o il nuovo topic
-            - "message": un messaggio per l'utente
+        dict: Un dizionario con il tipo di risposta e il contenuto
     """
-    # Normalizzazione dell'input
-    answer_lower = answer.strip().lower()
+    ColoredLogger.system("Analisi della risposta dell'utente...")
     
-    # Analisi delle risposte irrilevanti o "non so"
-    irrelevant_responses = [
-        "non so", "non lo so", "irrilevante", "non capisco", "non pertinente",
-        "troppo complesso", "troppo difficile", "non è pertinente", "non è rilevante",
-        "troppo ampia", "domanda troppo ampia", "non ho capito"
-    ]
-    
-    # Check per "cambia topic a X" o "parliamo di X" o simili
-    if "cambia topic" in answer_lower or "cambia argomento" in answer_lower or "parliamo di" in answer_lower:
-        prompt = f"""
-        Analizza il seguente messaggio dell'utente per estrarre un nuovo topic richiesto:
-        "{answer}"
-        
-        L'utente sembra voler cambiare topic durante l'intervista. Estrai il nuovo topic menzionato.
-        Restituisci solo il nome del nuovo topic. Se non viene menzionato chiaramente un nuovo topic, rispondi con "Nessun topic trovato".
-        """
-        
-        new_topic = timed_generate_text(prompt, "extract new topic").strip()
-        
-        if "nessun topic" in new_topic.lower():
-            return {
-                "type": "DIRECT",
-                "content": answer,
-                "message": "DEBUG - Tipo di risposta rilevato: DIRECT\nDEBUG - Richiesta di cambio topic ma nessun topic specificato."
-            }
-            
-        return {
-            "type": "CHANGE_TOPIC",
-            "content": new_topic,
-            "message": f"DEBUG - Tipo di risposta rilevato: CHANGE_TOPIC\nDEBUG - Nuovo topic richiesto: {new_topic}"
-        }
-    
-    # Check per risposte irrilevanti
-    for phrase in irrelevant_responses:
-        if phrase in answer_lower:
-            prompt = f"""
-            Analizza la seguente risposta dell'utente:
-            "{answer}"
-            
-            Domanda: {current_question}
-            Topic: {current_topic}
-            
-            L'utente ha indicato che la domanda non è rilevante o è troppo complessa.
-            Determina il motivo esatto della risposta dell'utente. Descrivi in una frase.
-            """
-            
-            reason = timed_generate_text(prompt, "interpretazione risposta").strip()
-            
-            return {
-                "type": "IRRELEVANT",
-                "content": answer,
-                "message": f"DEBUG - Tipo di risposta rilevato: IRRELEVANT\nDEBUG - Motivazione: {reason}"
-            }
-    
-    # Check per suggerimenti di domande
-    if "?" in answer:
-        prompt = f"""
-        Analizza la seguente risposta dell'utente:
-        "{answer}"
-        
-        Domanda originale: {current_question}
-        Topic: {current_topic}
-        
-        L'utente sembra aver suggerito una propria domanda invece di rispondere. 
-        È (a) una semplice richiesta di chiarimento della domanda, o
-        (b) sta chiedendo di cambiare completamente la domanda?
-        Rispondi solo con "A" o "B".
-        """
-        
-        suggestion_type = timed_generate_text(prompt, "analisi suggerimento domanda").strip().upper()
-        
-        if suggestion_type == "B":
-            return {
-                "type": "SUGGEST_QUESTION",
-                "content": answer,
-                "message": f"DEBUG - Tipo di risposta rilevato: SUGGEST_QUESTION\nDEBUG - L'utente ha suggerito una domanda alternativa."
-            }
-    
-    # Se nessuna delle condizioni precedenti è vera, la risposta è diretta
+    # Prompt migliorato per l'analisi semantica della risposta
     prompt = f"""
-    Analizza la seguente risposta dell'utente:
-    "{answer}"
+    Analizza semanticamente la seguente risposta dell'utente alla domanda: "{current_question}" (topic: {current_topic})
     
-    Domanda: {current_question}
-    Topic: {current_topic}
+    Risposta utente: "{user_input}"
     
-    Verifica se la risposta dell'utente è pertinente alla domanda e al topic.
-    Rispondi solo con "PERTINENTE" o "NON PERTINENTE".
+    Scegli UNA SOLA tra queste classificazioni:
+    1. DIRECT - Risposta diretta alla domanda (l'utente sta effettivamente rispondendo alla domanda)
+    2. CHANGE_TOPIC - Richiesta di cambiare topic (es. "parliamo di lavoro", "cambiamo argomento")
+    3. IRRELEVANT - Indicazione che la domanda è irrilevante o fuori contesto (es. "questa domanda non mi interessa", "non è pertinente")
+    4. SUGGEST_QUESTION - L'utente suggerisce una domanda alternativa (es. "chiedimi piuttosto...", "sarebbe meglio chiedere...")
+    
+    Se la classificazione è CHANGE_TOPIC, identifica il nuovo topic richiesto.
+    Se la classificazione è SUGGEST_QUESTION, estrai la domanda suggerita.
+    
+    IMPORTANTE: Prima di classificare una risposta come IRRELEVANT, verifica che l'utente stia effettivamente dicendo che la domanda è irrilevante, non che stia semplicemente rispondendo in modo negativo.
+    
+    Restituisci il risultato in formato JSON:
+    {{
+      "type": "DIRECT|CHANGE_TOPIC|IRRELEVANT|SUGGEST_QUESTION",
+      "content": "contenuto rilevante o domanda suggerita o nuovo topic",
+      "confidence": 0-100
+    }}
     """
     
-    relevance_check = timed_generate_text(prompt, "controllo pertinenza").strip().upper()
+    # Genera la classificazione
+    response = timed_generate_text(prompt, "classificazione semantica risposta")
     
-    if "NON PERTINENTE" in relevance_check:
-        prompt = f"""
-        Analizza la seguente risposta dell'utente:
-        "{answer}"
-        
-        Domanda: {current_question}
-        Topic: {current_topic}
-        
-        La risposta non sembra pertinente. Spiega brevemente perché.
-        """
-        
-        reason = timed_generate_text(prompt, "analisi non pertinenza").strip()
-        
-        return {
-            "type": "IRRELEVANT",
-            "content": answer,
-            "message": f"DEBUG - Tipo di risposta rilevato: IRRELEVANT\nDEBUG - Motivazione: {reason}\nDEBUG - Correzione automatica: riclassificazione come DIRECT"
-        }
+    # Estrai il risultato JSON
+    try:
+        # Cerca un pattern JSON nella risposta
+        json_match = re.search(r'{.*}', response, re.DOTALL)
+        if json_match:
+            json_str = json_match.group(0)
+            result = json.loads(json_str)
+            
+            response_type = result.get("type", "DIRECT")
+            content = result.get("content", user_input)
+            confidence = result.get("confidence", 80)
+            
+            message = f"Risposta classificata come: {response_type} (confidenza: {confidence}%)"
+            
+            return {
+                "type": response_type,
+                "content": content,
+                "confidence": confidence,
+                "message": message
+            }
+    except Exception as e:
+        ColoredLogger.error(f"Errore nell'analisi della risposta JSON: {e}")
     
+    # Fallback
     return {
         "type": "DIRECT",
-        "content": answer,
-        "message": "DEBUG - Tipo di risposta rilevato: DIRECT"
+        "content": user_input,
+        "confidence": 50,
+        "message": "Risposta classificata come: DIRECT (fallback)"
+    }
+
+def evaluate_question_compliance(question, guidelines):
+    """
+    Valuta se una domanda rispetta le linee guida utilizzando l'LLM.
+    
+    Args:
+        question (str): La domanda da valutare
+        guidelines (str): Le linee guida da rispettare
+        
+    Returns:
+        dict: Risultato della valutazione con conformità, spiegazione e suggerimenti
+    """
+    ColoredLogger.system("Valutazione della conformità della domanda...")
+    
+    prompt = f"""
+    Valuta se la seguente domanda rispetta le linee guida fornite.
+    
+    Domanda: "{question}"
+    
+    Linee guida:
+    {guidelines}
+    
+    Analizza attentamente e determina:
+    1. Se la domanda è conforme alle linee guida
+    2. Quali aspetti rispetta e quali eventualmente viola
+    3. Come potrebbe essere migliorata per rispettare meglio le linee guida
+    
+    Restituisci il risultato in formato JSON:
+    {{
+      "compliant": true/false,
+      "explanation": "Spiegazione dettagliata del perché la domanda rispetta o non rispetta le linee guida",
+      "improvement_suggestions": "Suggerimenti specifici per migliorare la domanda (se necessario)"
+    }}
+    """
+    
+    response = timed_generate_text(prompt, "valutazione conformità domanda")
+    
+    try:
+        json_match = re.search(r'{.*}', response, re.DOTALL)
+        if json_match:
+            json_str = json_match.group(0)
+            result = json.loads(json_str)
+            
+            return {
+                "compliant": result.get("compliant", True),
+                "explanation": result.get("explanation", "Nessuna spiegazione fornita"),
+                "improvement_suggestions": result.get("improvement_suggestions", "")
+            }
+    except Exception as e:
+        ColoredLogger.error(f"Errore nell'analisi della valutazione: {e}")
+    
+    # Fallback
+    return {
+        "compliant": True,
+        "explanation": "Non è stato possibile valutare la conformità della domanda",
+        "improvement_suggestions": ""
     }
 
 def provide_help_info():
@@ -159,19 +187,115 @@ def provide_help_info():
     Fornisce informazioni di aiuto all'utente.
     
     Returns:
-        str: Il messaggio di aiuto
+        str: Il messaggio di aiuto formattato
     """
-    help_text = """
-    === COMANDI DISPONIBILI ===
-    
-    Durante l'intervista puoi usare i seguenti comandi:
-    
-    - "skip" o (vuoto): salta la domanda attuale
-    - "fine" o "exit": termina l'intervista e salva i risultati
-    - "help", "aiuto" o "?": mostra questo messaggio di aiuto
-    - "cambia topic a [NOME]": cambia l'argomento dell'intervista
-    - "irrilevante": indica che la domanda non è pertinente
-    
-    Puoi sempre rispondere normalmente per fornire informazioni sul topic.
+    help_message = """
+Comandi disponibili:
+- fine/exit: Termina l'intervista
+- skip/passa: Salta la domanda corrente
+- help/aiuto: Mostra questo messaggio di aiuto
+- cambia topic X: Cambia il topic corrente a X
+- "Non mi interessa questa domanda": Indica che la domanda non è rilevante
+- "Chiedimi invece X": Suggerisci una domanda alternativa
+- "inseriamo nelle guideline che X": Aggiungi X alle linee guida
+- "mostra guideline": Visualizza le linee guida attuali
+
+Per valutare una domanda:
+- "questa domanda rispetta le linee guida": Conferma che la domanda è adeguata
+- "questa domanda non rispetta le linee guida": Segnala che la domanda non è conforme
+
+Quando ti viene mostrata una risposta suggerita:
+- Conferma con "sì", "va bene", etc.
+- Modifica con "no, in realtà..." o fornendo una risposta differente
+- Rifiuta con "no", "non è corretto", etc.
     """
-    return help_text 
+    
+    return help_message
+
+def summarize_conversation(conversation_history, current_topic):
+    """
+    Genera un riassunto della conversazione.
+    
+    Args:
+        conversation_history (str): La cronologia della conversazione
+        current_topic (str): Il topic corrente
+        
+    Returns:
+        str: Il riassunto generato
+    """
+    if not conversation_history.strip():
+        return f"Nessuna conversazione registrata sul topic '{current_topic}'."
+    
+    ColoredLogger.system("Generazione del riassunto della conversazione...")
+    
+    prompt = f"""
+    Genera un riassunto conciso della seguente conversazione sul topic '{current_topic}'.
+    
+    {conversation_history}
+    
+    Il riassunto deve:
+    1. Evidenziare i punti principali trattati
+    2. Essere in forma di paragrafi (non elenchi puntati)
+    3. Essere in terza persona
+    4. Non superare i 3-4 paragrafi
+    5. Essere in italiano
+    
+    Inizia direttamente con il riassunto, senza introduzioni.
+    """
+    
+    summary = timed_generate_text(prompt, "riassunto conversazione")
+    
+    # Filtra la risposta
+    summary = filter_llm_response(summary, current_topic)
+    
+    return summary
+
+def extract_key_insights(conversation_history, current_topic):
+    """
+    Estrae le intuizioni chiave dalla conversazione.
+    
+    Args:
+        conversation_history (str): La cronologia della conversazione
+        current_topic (str): Il topic corrente
+        
+    Returns:
+        list: Lista delle intuizioni chiave
+    """
+    if not conversation_history.strip():
+        return []
+    
+    ColoredLogger.system("Estrazione degli insight principali...")
+    
+    prompt = f"""
+    Estrai 3-5 insight chiave dalla seguente conversazione sul topic '{current_topic}'.
+    
+    {conversation_history}
+    
+    Gli insight devono:
+    1. Essere specifici e significativi
+    2. Riflettere il contenuto della conversazione
+    3. Essere espressi come affermazioni concise (max 15 parole)
+    4. Essere in italiano
+    
+    Restituisci SOLO un array JSON con gli insight:
+    ["Insight 1", "Insight 2", ...]
+    """
+    
+    response = timed_generate_text(prompt, "estrazione insight")
+    
+    # Estrai gli insight
+    try:
+        # Cerca pattern JSON nella risposta
+        json_match = re.search(r'\[.*\]', response, re.DOTALL)
+        if json_match:
+            json_str = json_match.group(0)
+            insights = json.loads(json_str)
+            
+            # Filtra gli insight
+            filtered_insights = [filter_llm_response(insight, current_topic) for insight in insights]
+            return filtered_insights
+    except Exception as e:
+        ColoredLogger.error(f"Errore nell'estrazione degli insight: {e}")
+    
+    # Fallback
+    return [] 

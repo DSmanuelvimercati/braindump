@@ -2,7 +2,7 @@ import os
 import json
 import shutil
 from modules.llm_handler import timed_generate_text
-from config import INFORMATION_DIR, TEMP_INFORMATION_DIR
+from config import INFORMATION_DIR, TEMP_FOLDER
 
 def finalize_session(chosen_topic):
     """
@@ -15,6 +15,9 @@ def finalize_session(chosen_topic):
         None
     """
     print("Intervista terminata.")
+    
+    # Definisci le directory temporanee
+    TEMP_INFORMATION_DIR = os.path.join(TEMP_FOLDER, "informazioni")
     
     # Verifica se ci sono informazioni nella cartella temporanea
     temp_topic_dir = os.path.join(TEMP_INFORMATION_DIR, chosen_topic.lower())
