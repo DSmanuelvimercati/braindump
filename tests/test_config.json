@@ -1,0 +1,11 @@
+{
+    "run_all_tests": false,
+    "tests_to_run": [
+        "TestColoredLogger.test_log_method",
+        "TestLlmHandler.test_is_valid_question"
+    ],
+    "test_classes": [],
+    "max_history_entries": 5,
+    "show_time_estimates": true,
+    "verbosity": 1
+}
