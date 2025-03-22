@@ -1,53 +1,83 @@
-import os
-
-# System prompt aggiornato
-SYSTEM_PROMPT = """
-Sei un agente intelligente che ha il SOLO compito di generare domande brevi e precise per creare un dump completo del cervello dell'utente.
-
-REGOLE FONDAMENTALI:
-1. GENERA SOLO DOMANDE - Il tuo output deve essere ESCLUSIVAMENTE una singola domanda breve e concisa. 
-2. NON CREARE DUMP - NON generare mai elenchi, riassunti, analisi o qualsiasi forma di dump del cervello.
-3. NON RISPONDERE PER L'UTENTE - Non inventare MAI risposte o contenuti al posto dell'utente.
-4. RISPETTA IL CONTESTO - Le tue domande devono seguire logicamente la conversazione e riguardare solo il topic scelto.
-5. USA SOLO LA LINGUA ITALIANA - Tutte le domande DEVONO essere formulate ESCLUSIVAMENTE in italiano.
-
-Struttura delle risposte:
-- Formato: Una singola domanda breve e diretta, senza preamboli o conclusioni.
-- Esempio di output corretto: "Quali strumenti tecnologici utilizzi quotidianamente nel tuo lavoro?"
-- Esempio di output errato (da evitare): "Analizziamo la conversazione..." o "Ecco un riassunto di..."
-
-Il sistema raccoglierà le risposte dell'utente e le organizzerà automaticamente. Il tuo UNICO compito è generare la prossima domanda pertinente.
-
-Compiti specifici:
-- Poni domande semplici e specifiche per raccogliere informazioni sui pensieri e le esperienze dell'utente.
-- Per argomenti complessi, inizia con domande generiche e passa a domande più specifiche solo se l'utente dimostra una buona comprensione.
-- Ogni domanda deve essere logicamente collegata al topic scelto e alla conversazione precedente.
-
-IMPORTANTE: Tutte le domande devono essere formulate ESCLUSIVAMENTE in italiano. Non usare MAI altre lingue.
-
-Se ti trovi a generare qualsiasi cosa che non sia una semplice domanda, FERMATI e correggi immediatamente il tuo output.
+"""
+Configurazione dell'applicazione Braindump.
 """
 
-# Cartella permanente per il braindump
+import os
+import datetime
+
+# Prompt di sistema
+SYSTEM_PROMPT = """
+Sei un agente intervistatore che deve generare domande concise per l'utente.
+
+Il tuo compito è stimolare l'utente con domande pertinenti sul topic scelto, che siano:
+1. Personali (rivolte alle esperienze/opinioni/preferenze dell'utente)
+2. Non ripetitive
+3. Interessanti e stimolanti
+4. Facili da rispondere
+
+NON devi MAI:
+- Generare risposte per conto dell'utente
+- Creare riassunti o sommari
+- Dare consigli non richiesti
+- Cambiare argomento senza che l'utente lo chieda
+- Fare domande quiz o testare l'utente
+
+Attendi pazientemente le risposte dell'utente e rispondi solo con domande pertinenti al topic.
+"""
+
+# Directory per i dati
 BRAINDUMP_DIR = "braindump_data"
 INFORMATION_DIR = os.path.join(BRAINDUMP_DIR, "informazioni")
 CONCEPTS_DIR = os.path.join(BRAINDUMP_DIR, "concetti")
+GUIDELINES_DIR = "guidelines"  # Directory per le linee guida
+PERMANENT_GUIDELINES_FILE = os.path.join(GUIDELINES_DIR, "interviewer_guidelines.md")
 
 # Cartella temporanea per la sessione
 TEMP_FOLDER = "temp_session"
-TEMP_INFORMATION_DIR = os.path.join(TEMP_FOLDER, "informazioni")
-TEMP_CONCEPTS_DIR = os.path.join(TEMP_FOLDER, "concetti")
 
-# Default topics unici
+# Configurazione delle domande
+MAX_QUESTIONS_PER_TOPIC = 10
+TIME_LIMIT_SECONDS = 600  # 10 minuti
+
+# Estensioni dei file supportate
+SUPPORTED_EXTENSIONS = [".md", ".txt"]
+
+# Chiavi di configurazione del LLM
+LLM_CONFIG = {
+    "temperature": 0.7,
+    "max_tokens": 1024,
+    "frequency_penalty": 0.0,
+    "presence_penalty": 0.0,
+    "timeout": 60  # secondi
+}
+
+# Topic predefiniti - utilizzati solo se non ci sono file concetti
 DEFAULT_TOPICS = [
-    "lavoro", 
-    "persone", 
-    "esperienze", 
-    "passioni", 
-    "ambizioni", 
-    "cultura", 
-    "scienza"
+    "lavoro",
+    "hobby",
+    "famiglia",
+    "relazioni",
+    "persone",
+    "esperienze",
+    "convinzioni",
+    "viaggi",
+    "abitudini",
+    "idee",
+    "progetti",
+    "formazione"
 ]
+
+def create_temp_folder():
+    """Crea una cartella temporanea per la sessione corrente."""
+    if not os.path.exists(TEMP_FOLDER):
+        os.makedirs(TEMP_FOLDER)
+    
+    # Crea sottocartella per le informazioni e concetti
+    temp_info_dir = os.path.join(TEMP_FOLDER, "informazioni")
+    
+    if not os.path.exists(temp_info_dir):
+        os.makedirs(temp_info_dir)
+
 
 def load_braindump_data():
     """
@@ -64,13 +94,3 @@ def load_braindump_data():
                 with open(filepath, "r", encoding="utf-8") as file:
                     data[filename] = file.read()
     return data
-
-def create_temp_folder():
-    """
-    Crea la cartella temporanea per la sessione e le relative sotto-cartelle per informazioni e concetti.
-    """
-    if not os.path.exists(TEMP_FOLDER):
-        os.makedirs(TEMP_FOLDER)
-    if not os.path.exists(TEMP_INFORMATION_DIR):
-        os.makedirs(TEMP_INFORMATION_DIR)
-    return TEMP_FOLDER
