@@ -1,13 +1,47 @@
-# main.py
+"""
+Braindump — sistema di autobiografia personale con Gemma4 E4B-it.
 
-from modules.chat import start_interview
+Modalità:
+  1. Biografo  — ascolta il tuo journaling libero e organizza nel vault
+  2. Intervistatore — fa domande attive per costruire il tuo profilo
+"""
+
+from core import vault
+from core.voice import Voice
+
+
+def menu():
+    print()
+    print("  ╔══════════════════════════════╗")
+    print("  ║        B R A I N D U M P     ║")
+    print("  ╚══════════════════════════════╝")
+    print()
+    print("  1.  Biografo      — journaling libero")
+    print("  2.  Intervistatore — domande guidate")
+    print("  q.  Esci")
+    print()
+    return input("  Modalità: ").strip().lower()
+
 
 def main():
-    """
-    Funzione principale che avvia il sistema di Braindump e Agente Intervistatore.
-    """
-    print("Avvio del sistema di Braindump e Agente Intervistatore...")
-    start_interview()
+    vault.init()
+    voice = Voice()
 
-if __name__ == '__main__':
+    while True:
+        choice = menu()
+
+        if choice in ("q", "quit", "esci"):
+            print("\n  Arrivederci.\n")
+            break
+        elif choice == "1":
+            from modes.biografo import run
+            run(voice)
+        elif choice == "2":
+            from modes.intervistatore import run
+            run(voice)
+        else:
+            print("  Scelta non valida.")
+
+
+if __name__ == "__main__":
     main()
