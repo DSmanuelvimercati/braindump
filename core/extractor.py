@@ -8,48 +8,58 @@ from core.model import think  # text-only via Ollama
 from core import vault
 
 
-SYSTEM_EXTRACT = """Sei un assistente che organizza ricordi e pensieri personali in un vault Obsidian.
-Ricevi quello che l'utente ha detto e il contesto esistente nel vault.
-Estrai informazioni strutturate e decidi come organizzarle in note markdown.
-Rispondi SOLO con JSON valido, niente altro."""
+SYSTEM_EXTRACT = """Sei l'archivista di un vault Obsidian autobiografico. Ricevi trascrizioni di conversazioni e le trasformi in operazioni di scrittura sul vault.
+
+IL TUO UNICO OUTPUT è un JSON valido, niente altro — niente spiegazioni, niente testo prima o dopo.
+
+STRUTTURA OUTPUT:
+{"operazioni": [ {"action": "merge", "folder": "...", "title": "...", "content": "...", "tags": [...]} ]}
+
+CARTELLE — usa quelle esistenti o creane di nuove se nessuna è adatta:
+- Persone/ → persone menzionate per nome
+- Lavoro/ → lavoro, aziende, ruoli
+- Esperienze/ → eventi, ricordi, periodi vissuti
+- Idee/ → progetti, piani, idee concrete
+- Concetti/ → concetti tecnici o culturali
+- Opinioni/ → punti di vista personali, posizioni, interpretazioni
+- (puoi usare altre cartelle se il contenuto non rientra in nessuna di queste)
+
+FORMATO DEL CONTENUTO:
+- Bullet point atomici, uno per riga, in prima persona
+- "lavoro a", "ho studiato", "penso che", "secondo me", "ho conosciuto"
+- [[wikilinks]] SOLO per nomi propri reali: persone, aziende, luoghi geografici
+- MAI wikilinks per concetti astratti, idee, titoli di altre note
+
+TITOLI:
+- Max 4 parole, descrittivo del soggetto — MAI interpretativo
+- Corretto: "Luca Bianchi", "Datapizza", "Bachata", "Bias in NLP"
+- Sbagliato: "L'impatto dei mentori", "Riflessioni sul lavoro", "Come ho capito X"
+
+QUANDO RESTITUIRE {"operazioni": []}:
+- La risposta è negativa, evasiva, o un rifiuto ("no", "non lo so", "non ricordo")
+- Non emergono informazioni nuove e concrete
+- La risposta è già completamente coperta dal vault esistente
+
+REGOLE ASSOLUTE:
+- Solo ciò che è stato detto esplicitamente — zero inferenze, zero interpretazioni
+- Se non è stato detto chiaramente, non scriverlo
+- Non inventare dettagli per completare una nota"""
 
 
 def extract(transcript: str) -> list[dict]:
     """
     Analizza una trascrizione e ritorna una lista di operazioni vault da eseguire.
-    Ogni operazione: {"action": "write"|"merge"|"journal", "folder": str, "title": str, "content": str, "tags": [str]}
+    Ogni operazione: {"action": "merge", "folder": str, "title": str, "content": str, "tags": [str]}
     """
     context = vault.context_summary()
 
-    prompt = f"""L'utente ha detto:
-"{transcript}"
-
-Contesto vault esistente:
+    prompt = f"""Contesto vault esistente:
 {context}
 
-Analizza e restituisci un JSON con questa struttura:
-{{
-  "operazioni": [
-    {{
-      "action": "merge",
-      "folder": "Persone|Lavoro|Esperienze|Idee|Concetti|Journal",
-      "title": "titolo della nota",
-      "content": "testo markdown in prima persona, usa [[Nome]] per collegare persone/concetti menzionati",
-      "tags": ["tag1", "tag2"]
-    }}
-  ]
-}}
+Trascrizione da elaborare:
+{transcript}
 
-Regole:
-- Scrivi SEMPRE in prima persona ("lavoro", "ho fatto", "mi piace", ecc.)
-- Usa [[wikilinks]] per persone, luoghi, aziende, concetti chiave
-- Se viene menzionata una persona → crea/aggiorna nota in Persone/
-- Se viene menzionato il lavoro → Lavoro/
-- Se è un'esperienza/ricordo → Esperienze/
-- Se è un'idea/riflessione → Idee/
-- Aggiungi sempre una operazione "journal" con il Journal del giorno
-- Se il testo è troppo vago o non contiene informazioni utili, restituisci solo l'operazione journal
-- Titoli brevi e chiari, max 5 parole"""
+Restituisci il JSON delle operazioni."""
 
     raw = think(SYSTEM_EXTRACT, prompt)
 
@@ -61,22 +71,15 @@ Regole:
     except json.JSONDecodeError:
         pass
 
-    # Fallback: salva almeno nel journal
-    return [{"action": "journal", "folder": "Journal", "title": "", "content": transcript, "tags": ["journal"]}]
+    return []
 
 
 def apply(operazioni: list[dict]):
     """Esegue le operazioni sul vault."""
     for op in operazioni:
-        action = op.get("action", "merge")
-        folder = op.get("folder", "Idee")
+        folder = op.get("folder", "")
         title = op.get("title", "")
         content = op.get("content", "")
         tags = op.get("tags", [])
-
-        if action == "journal" or folder == "Journal":
-            vault.append_to_daily(content)
-        elif action == "write":
-            vault.write(folder, title, content, tags)
-        else:  # merge (default)
+        if folder and title and content:
             vault.merge(folder, title, content, tags)

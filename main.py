@@ -1,13 +1,19 @@
 """
-Braindump — sistema di autobiografia personale con Gemma4 E4B-it.
+Braindump — sistema di autobiografia personale con Gemma4.
 
 Modalità:
-  1. Biografo  — ascolta il tuo journaling libero e organizza nel vault
-  2. Intervistatore — fa domande attive per costruire il tuo profilo
+  1. Biografo       — journaling libero
+  2. Intervistatore — domande guidate con agent loop
+
+Flag:
+  --debug   mostra tool calls, prompt e risultati in tempo reale
 """
 
+import sys
 from core import vault
 from core.voice import Voice
+
+DEBUG = "--debug" in sys.argv
 
 
 def menu():
@@ -15,8 +21,10 @@ def menu():
     print("  ╔══════════════════════════════╗")
     print("  ║        B R A I N D U M P     ║")
     print("  ╚══════════════════════════════╝")
+    if DEBUG:
+        print("  ⚠  modalità DEBUG attiva")
     print()
-    print("  1.  Biografo      — journaling libero")
+    print("  1.  Biografo       — journaling libero")
     print("  2.  Intervistatore — domande guidate")
     print("  q.  Esci")
     print()
@@ -38,7 +46,7 @@ def main():
             run(voice)
         elif choice == "2":
             from modes.intervistatore import run
-            run(voice)
+            run(voice, debug=DEBUG)
         else:
             print("  Scelta non valida.")
 

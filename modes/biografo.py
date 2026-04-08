@@ -85,6 +85,44 @@ def _end_summary(transcripts: list[str], voice: Voice):
     voice.speak(f"Sessione completata. Ho registrato {len(transcripts)} frammenti nel vault.")
 
 
+def run_session_ws(emit, get_input):
+    """Versione WebSocket del biografo — testo già trascritto arriva via get_input()."""
+    from core.model import think
+
+    emit({"type": "status", "message": "Modalità biografo attiva. Registra quando vuoi."})
+    emit({"type": "ready"})  # segnala alla UI di mostrare il pulsante di registrazione
+
+    session_transcripts = []
+
+    while True:
+        text = get_input()
+        if not text or text.strip().lower() in ("fine", "stop", "esci", "basta"):
+            emit({"type": "status", "message": "Sessione terminata."})
+            emit({"type": "session_end", "count": len(session_transcripts)})
+            break
+
+        emit({"type": "user_answer", "text": text})
+        session_transcripts.append(text)
+
+        # Salva nel vault
+        emit({"type": "status", "message": "Elaboro e salvo nel vault..."})
+        ops = extractor.extract(text)
+        extractor.apply(ops)
+
+        for op in ops:
+            if op.get("title"):
+                emit({"type": "vault_write",
+                      "folder": op["folder"],
+                      "title": op["title"],
+                      "action": op.get("action", "merge")})
+
+        # Feedback breve — max una frase
+        ack = think(SYSTEM_ACK, f'L\'utente ha detto: "{text}"')
+        first = ack.split(".")[0].strip() + "."
+        emit({"type": "ack", "text": first})
+        emit({"type": "ready"})  # pronto per il prossimo input
+
+
 def run(voice: Voice):
     print("\n  Come vuoi lavorare?")
     print("  1. Live (trascrizione in tempo reale)")

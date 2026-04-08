@@ -1,0 +1,2 @@
+Cartelle analizzate finora: Lavoro/, Persone/, Concetti/.
+Prossimo step: Esplorare la cartella [[Esperienze/]] per contestualizzare eventi personali e professionali, che potrebbero dare concretezza ai concetti astratti trovati finora.

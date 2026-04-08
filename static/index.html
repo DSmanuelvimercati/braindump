@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Braindump</title>
+<style>
+  :root {
+    --bg:        #0d0d0d;
+    --panel:     #151515;
+    --border:    #252525;
+    --text:      #e0e0e0;
+    --muted:     #666;
+    --accent:    #7c3aed;
+    --blue:      #3b82f6;
+    --green:     #10b981;
+    --amber:     #f59e0b;
+    --red:       #ef4444;
+    --radius:    8px;
+    --mono:      'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    --bubble-gemma-bg:    #1a1030;
+    --bubble-gemma-border:#2d1f50;
+    --bubble-user-bg:     #1a1a1a;
+    --input-bg:           #1a1a1a;
+  }
+  body.light {
+    --bg:        #f5f5f5;
+    --panel:     #ffffff;
+    --border:    #ddd;
+    --text:      #1a1a1a;
+    --muted:     #888;
+    --bubble-gemma-bg:    #ede9fe;
+    --bubble-gemma-border:#c4b5fd;
+    --bubble-user-bg:     #f0f0f0;
+    --input-bg:           #fff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    flex-shrink: 0;
+  }
+  header h1 {
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .header-right { display: flex; gap: 10px; align-items: center; }
+  .mode-badge {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: #1a1a2e;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .btn-ghost {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 4px 12px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 12px;
+    transition: all 0.15s;
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── MAIN LAYOUT ── */
+  main {
+    display: grid;
+    grid-template-columns: 1fr 5px 360px;
+    grid-template-rows: 1fr;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .resize-handle {
+    width: 5px;
+    background: var(--border);
+    cursor: col-resize;
+    flex-shrink: 0;
+    transition: background 0.15s;
+    z-index: 10;
+  }
+  .resize-handle:hover, .resize-handle.dragging { background: var(--accent); }
+
+  /* ── CONVERSATION PANEL ── */
+  .conv-panel {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .conv-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .conv-messages::-webkit-scrollbar { width: 4px; }
+  .conv-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .bubble {
+    max-width: 85%;
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    line-height: 1.5;
+    animation: fadeIn 0.2s ease;
+  }
+  .bubble.gemma {
+    background: var(--bubble-gemma-bg);
+    border: 1px solid var(--bubble-gemma-border);
+    color: var(--text);
+    align-self: flex-start;
+  }
+  .bubble.gemma .sender {
+    font-size: 10px;
+    color: var(--accent);
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+  .bubble.user {
+    background: var(--bubble-user-bg);
+    border: 1px solid var(--border);
+    align-self: flex-end;
+    color: var(--text);
+  }
+  .bubble.status {
+    align-self: center;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 12px;
+    font-style: italic;
+    padding: 4px;
+  }
+
+  /* ── INPUT AREA ── */
+  .input-wrapper {
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+  }
+  .input-wrapper.hidden { display: none; }
+  .input-area {
+    padding: 16px 20px 8px;
+    display: flex;
+    gap: 10px;
+  }
+  .control-area {
+    padding: 0 20px 12px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .btn-control {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-control:hover { border-color: var(--accent); color: var(--accent); }
+  .parladi-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .parladi-row.hidden { display: none; }
+  #parladi-input {
+    background: var(--input-bg);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-family: var(--mono);
+    font-size: 12px;
+    outline: none;
+    width: 180px;
+  }
+  #user-input {
+    flex: 1;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    font-family: var(--mono);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  #user-input:focus { border-color: var(--accent); }
+  #send-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    transition: opacity 0.15s;
+  }
+  #send-btn:hover { opacity: 0.85; }
+
+  /* ── ACTIVITY PANEL ── */
+  .activity-panel {
+    display: flex;
+    flex-direction: column;
+    background: var(--panel);
+    overflow: hidden;
+    min-height: 0;
+  }
+  .activity-header {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .tab-btns { display: flex; gap: 4px; }
+  .tab-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    cursor: pointer;
+    font-family: var(--mono);
+    transition: all 0.15s;
+  }
+  .tab-btn.active { border-color: var(--accent); color: var(--accent); }
+
+  /* Raw log */
+  .raw-log {
+    flex: 1;
+    height: 0;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 12px;
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .raw-log.active { display: flex; }
+  .raw-log::-webkit-scrollbar { width: 6px; }
+  .raw-log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  .raw-block {
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .raw-block-header {
+    padding: 7px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+  }
+  .raw-block-header:hover { opacity: 0.8; }
+  .raw-block-body {
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  .raw-block-body.collapsed { display: none; }
+  .raw-system  .raw-block-header { background: #1a1a2e; color: #a5b4fc; }
+  .raw-system  .raw-block-body   { color: #c4c9d4; background: #0d0d1a; }
+  .raw-prompt  .raw-block-header { background: #0f1a2e; color: #93c5fd; }
+  .raw-prompt  .raw-block-body   { color: #c4c9d4; background: #080f1a; }
+  .raw-response .raw-block-header { background: #0a1a12; color: #6ee7b7; }
+  .raw-response .raw-block-body  { color: #d1d5db; background: #060d09; }
+  body.light .raw-system  .raw-block-header { background: #ede9fe; color: #6d28d9; }
+  body.light .raw-system  .raw-block-body   { color: #1f2937; background: #f5f3ff; }
+  body.light .raw-prompt  .raw-block-header { background: #dbeafe; color: #1d4ed8; }
+  body.light .raw-prompt  .raw-block-body   { color: #1f2937; background: #eff6ff; }
+  body.light .raw-response .raw-block-header { background: #d1fae5; color: #065f46; }
+  body.light .raw-response .raw-block-body  { color: #1f2937; background: #ecfdf5; }
+  .activity-feed {
+    flex: 1;
+    height: 0;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .activity-feed::-webkit-scrollbar { width: 4px; }
+  .activity-feed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .event {
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.4;
+    animation: fadeIn 0.15s ease;
+    border-left: 3px solid transparent;
+  }
+  .event-thinking  { border-color: var(--muted); color: var(--muted); font-style: italic; }
+  .event-tool_call { border-color: var(--blue); background: #0f1a2e; color: #93c5fd; }
+  .event-tool_result { border-color: #1e3a2e; background: #0a1a12; color: #6ee7b7; }
+  .event-vault_write { border-color: var(--amber); background: #1a140a; color: #fcd34d; }
+  .event-entity { border-color: #374151; background: #111; color: var(--muted); }
+  .event-entity .known   { color: var(--green); }
+  .event-entity .unknown { color: var(--amber); }
+  .event-error { border-color: var(--red); background: #1a0a0a; color: #fca5a5; }
+
+  .event .event-label {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-bottom: 2px;
+    display: block;
+  }
+  .event-result-preview {
+    color: #4b5563;
+    font-size: 11px;
+    margin-top: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── MODAL SYSTEM PROMPT ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.8);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+  }
+  .modal-overlay.hidden { display: none; }
+  .modal-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    width: min(800px, 90vw);
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .modal-box header {
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-box header h2 { font-size: 12px; color: var(--muted); letter-spacing: 2px; }
+  .modal-body {
+    overflow-y: auto;
+    padding: 20px;
+  }
+  .modal-body pre {
+    white-space: pre-wrap;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #9ca3af;
+  }
+
+  /* ── START SCREEN ── */
+  .start-screen {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 24px;
+    z-index: 50;
+  }
+  .start-screen.hidden { display: none; }
+  .start-screen h1 {
+    font-size: 22px;
+    letter-spacing: 8px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .start-screen p { color: var(--muted); font-size: 13px; }
+  .mode-buttons { display: flex; gap: 16px; }
+  .mode-btn {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 16px 32px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 13px;
+    text-align: center;
+    transition: all 0.15s;
+  }
+  .mode-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .mode-btn .mode-desc { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+  /* ── PROPOSAL AREA (archivista) ── */
+  .proposal-area {
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+    display: none;
+    flex-direction: column;
+    gap: 0;
+  }
+  .proposal-area.visible { display: flex; }
+  .proposal-header {
+    padding: 10px 16px;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--amber);
+    border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+  }
+  .proposal-motivation {
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.5;
+    border-bottom: 1px solid var(--border);
+  }
+  .proposal-diff {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    max-height: 280px;
+    overflow-y: auto;
+    border-bottom: 1px solid var(--border);
+  }
+  .proposal-col {
+    padding: 10px 14px;
+    overflow-y: auto;
+  }
+  .proposal-col:first-child { border-right: 1px solid var(--border); }
+  .proposal-col-label {
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .proposal-col.before .proposal-col-label { color: var(--red); }
+  .proposal-col.after  .proposal-col-label { color: var(--green); }
+  .proposal-note {
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .proposal-note-title {
+    padding: 4px 8px;
+    font-size: 10px;
+    background: #1a1a1a;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .proposal-note-body {
+    padding: 8px;
+    font-size: 11px;
+    white-space: pre-wrap;
+    color: #6b7280;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+  body.light .proposal-note-title { background: #f0f0f0; }
+  .proposal-actions {
+    padding: 10px 16px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .btn-approve {
+    background: var(--green);
+    color: #000;
+    border: none;
+    padding: 6px 18px;
+    border-radius: var(--radius);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-reject {
+    background: none;
+    border: 1px solid var(--red);
+    color: var(--red);
+    padding: 6px 18px;
+    border-radius: var(--radius);
+    font-family: var(--mono);
+    font-size: 12px;
+    cursor: pointer;
+  }
+  #reject-reason {
+    flex: 1;
+    min-width: 160px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 10px;
+    border-radius: var(--radius);
+    font-family: var(--mono);
+    font-size: 12px;
+    outline: none;
+    display: none;
+  }
+  #reject-reason.visible { display: block; }
+
+  /* ── RECORD AREA (biografo) ── */
+  .record-area {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+  }
+  .record-area.hidden { display: none; }
+  #record-btn {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--panel);
+    color: var(--muted);
+    font-size: 28px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #record-btn:hover { border-color: var(--accent); }
+  #record-btn.recording {
+    border-color: var(--red);
+    background: #1a0a0a;
+    animation: pulse 1s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); } 50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); } }
+  .record-hint { font-size: 11px; color: var(--muted); }
+
+  .transcript-preview {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .transcript-preview.hidden { display: none; }
+  #transcript-text {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    font-family: var(--mono);
+    font-size: 13px;
+    resize: vertical;
+    min-height: 80px;
+    outline: none;
+  }
+  .transcript-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  .spinner {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border: 1px solid var(--muted);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- START SCREEN -->
+<div class="start-screen" id="start-screen">
+  <h1>B R A I N D U M P</h1>
+  <p>Scegli la modalità</p>
+  <div class="mode-buttons">
+    <button class="mode-btn" onclick="startSession('intervistatore')">
+      🎤 Intervistatore
+      <div class="mode-desc">domande guidate</div>
+    </button>
+    <button class="mode-btn" onclick="startSession('biografo')">
+      📖 Biografo
+      <div class="mode-desc">journaling libero</div>
+    </button>
+    <button class="mode-btn" onclick="startSession('archivista')">
+      🗂 Archivista
+      <div class="mode-desc">riorganizza il vault</div>
+    </button>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <h1>B R A I N D U M P</h1>
+  <div class="header-right">
+    <span class="mode-badge" id="mode-badge">—</span>
+    <button class="btn-ghost" onclick="showSystemPrompt()">📄 system prompt</button>
+    <button class="btn-ghost" id="theme-btn" onclick="toggleTheme()">☀ chiaro</button>
+    <button class="btn-ghost" onclick="location.reload()">↩ menu</button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main>
+  <div class="conv-panel">
+    <div class="conv-messages" id="conv-messages"></div>
+
+    <!-- PROPOSAL AREA — archivista -->
+    <div class="proposal-area" id="proposal-area">
+      <div class="proposal-header">📋 proposta archivista</div>
+      <div class="proposal-motivation" id="proposal-motivation"></div>
+      <div class="proposal-diff">
+        <div class="proposal-col before">
+          <div class="proposal-col-label">prima</div>
+          <div id="proposal-before"></div>
+        </div>
+        <div class="proposal-col after">
+          <div class="proposal-col-label">dopo</div>
+          <div id="proposal-after"></div>
+        </div>
+      </div>
+      <div class="proposal-actions">
+        <button class="btn-approve" onclick="approveProposal()">✓ Sì, esegui</button>
+        <button class="btn-reject" onclick="showRejectInput()">✕ No</button>
+        <input type="text" id="reject-reason" placeholder="motivo del rifiuto... (Invio per confermare)">
+      </div>
+    </div>
+
+    <!-- RECORD AREA — biografo -->
+    <div class="record-area hidden" id="record-area">
+      <button id="record-btn" onclick="toggleRecording()" title="Clicca per registrare">🎤</button>
+      <span class="record-hint" id="record-hint">clicca per registrare</span>
+      <div class="transcript-preview hidden" id="transcript-preview">
+        <textarea id="transcript-text" placeholder="trascrizione..."></textarea>
+        <div class="transcript-actions">
+          <button class="btn-control" onclick="discardTranscript()">✕ scarta</button>
+          <button class="btn-control" style="border-color:var(--accent);color:var(--accent)" onclick="confirmTranscript()">✓ conferma</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-wrapper hidden" id="input-area">
+      <div class="input-area">
+        <input type="text" id="user-input" placeholder="Rispondi..." autocomplete="off">
+        <button id="send-btn" onclick="sendInput()">Invia ↵</button>
+      </div>
+      <div class="control-area">
+        <button class="btn-control" onclick="changeTopic()">↩ cambia argomento</button>
+        <button class="btn-control" onclick="toggleParlaDi()">parla di...</button>
+        <div class="parladi-row hidden" id="parladi-row">
+          <input type="text" id="parladi-input" placeholder="argomento..." autocomplete="off">
+          <button class="btn-control" onclick="sendParlaDi()" style="border-color:var(--accent);color:var(--accent)">→</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="resize-handle" id="resize-handle"></div>
+  <div class="activity-panel">
+    <div class="activity-header">
+      <span>attività</span>
+      <div class="tab-btns">
+        <button class="tab-btn active" onclick="switchTab('events')">eventi</button>
+        <button class="tab-btn" onclick="switchTab('raw')">raw</button>
+      </div>
+    </div>
+    <div class="activity-feed" id="activity-feed"></div>
+    <div class="raw-log" id="raw-log"></div>
+  </div>
+</main>
+
+<!-- MODAL SYSTEM PROMPT -->
+<div class="modal-overlay hidden" id="modal" onclick="closeModal(event)">
+  <div class="modal-box">
+    <header>
+      <h2>SYSTEM PROMPT</h2>
+      <button class="btn-ghost" onclick="document.getElementById('modal').classList.add('hidden')">✕</button>
+    </header>
+    <div class="modal-body">
+      <pre id="sys-prompt-content"></pre>
+    </div>
+  </div>
+</div>
+
+<script>
+let ws = null;
+let systemPrompt = '';
+let waitingForInput = false;
+let currentMode = 'intervistatore';
+
+// ── Registrazione audio ────────────────────────────────────
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+
+// ── WebSocket ──────────────────────────────────────────────
+
+function startSession(mode) {
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('mode-badge').textContent = mode;
+
+  ws = new WebSocket(`ws://${location.host}/ws`);
+
+  ws.onopen = () => {
+    ws.send(JSON.stringify({ type: 'init', mode }));
+  };
+
+  ws.onmessage = (e) => {
+    const event = JSON.parse(e.data);
+    handleEvent(event);
+  };
+
+  ws.onerror = () => addActivity({ type: 'error', message: 'Connessione WebSocket persa.' });
+  ws.onclose = () => addConvMessage('status', 'Connessione chiusa.');
+}
+
+// ── Event handler ──────────────────────────────────────────
+
+function handleEvent(event) {
+  const t = event.type;
+
+  if (t === 'session_start') {
+    systemPrompt = event.system_prompt || '';
+    currentMode = event.mode;
+    addConvMessage('status', `Modalità ${event.mode} avviata`);
+  }
+  else if (t === 'thinking') {
+    addActivity(event);
+    setInputVisible(false);
+  }
+  else if (t === 'stream_token') {
+    // ignorato — la risposta completa arriva con llm_response
+  }
+  else if (t === 'llm_call') {
+    addRawCall(event);
+  }
+  else if (t === 'llm_response') {
+    addRawResponse(event);
+  }
+  else if (t === 'tool_call') {
+    addActivity(event);
+  }
+  else if (t === 'tool_result') {
+    addActivity(event);
+  }
+  else if (t === 'question') {
+    addConvMessage('gemma', event.text);
+    setInputVisible(true);
+    waitingForInput = true;
+    document.getElementById('user-input').focus();
+  }
+  else if (t === 'user_answer') {
+    addConvMessage('user', event.text);
+  }
+  else if (t === 'vault_write') {
+    addActivity(event);
+  }
+  else if (t === 'entity_found') {
+    addActivity(event);
+  }
+  else if (t === 'status') {
+    addConvMessage('status', event.message);
+  }
+  else if (t === 'proposal') {
+    showProposal(event);
+  }
+  else if (t === 'ready') {
+    // biografo: pronto per nuova registrazione
+    document.getElementById('record-area').classList.remove('hidden');
+    document.getElementById('transcript-preview').classList.add('hidden');
+    document.getElementById('record-hint').textContent = 'clicca per registrare';
+  }
+  else if (t === 'response') {
+    // risposta testuale diretta (senza tool call) — mostra e sblocca input
+    addConvMessage('gemma', event.text);
+    setInputVisible(true);
+    waitingForInput = true;
+    document.getElementById('user-input').focus();
+  }
+  else if (t === 'ack') {
+    addConvMessage('gemma', event.text);
+  }
+  else if (t === 'session_end') {
+    addConvMessage('status', `✓ Sessione completata — ${event.count} frammenti salvati nel vault`);
+    setInputVisible(false);
+    document.getElementById('record-area').classList.add('hidden');
+  }
+  else if (t === 'error') {
+    addActivity(event);
+    addConvMessage('status', `⚠ Errore: ${event.message}`);
+  }
+}
+
+// ── UI helpers ─────────────────────────────────────────────
+
+function addConvMessage(type, text) {
+  const feed = document.getElementById('conv-messages');
+  const div = document.createElement('div');
+
+  if (type === 'gemma') {
+    div.className = 'bubble gemma';
+    div.innerHTML = `<div class="sender">GEMMA</div>${escHtml(text)}`;
+  } else if (type === 'user') {
+    div.className = 'bubble user';
+    div.textContent = text;
+  } else {
+    div.className = 'bubble status';
+    div.textContent = text;
+  }
+
+  feed.appendChild(div);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function addActivity(event) {
+  const feed = document.getElementById('activity-feed');
+  const div = document.createElement('div');
+  const t = event.type;
+
+  if (t === 'thinking') {
+    div.className = 'event event-thinking';
+    div.innerHTML = `<span class="spinner"></span>${escHtml(event.message || 'elaborazione...')}`;
+  }
+  else if (t === 'tool_call') {
+    const args = JSON.stringify(event.args || {});
+    div.className = 'event event-tool_call';
+    div.innerHTML = `<span class="event-label">TOOL CALL</span>🔍 ${escHtml(event.tool)}(${escHtml(args)})`;
+  }
+  else if (t === 'tool_result') {
+    const preview = (event.result || '').slice(0, 100).replace(/\n/g, ' ');
+    div.className = 'event event-tool_result';
+    div.innerHTML = `<span class="event-label">RISULTATO — ${escHtml(event.tool)}</span><div class="event-result-preview">${escHtml(preview)}</div>`;
+    div.title = event.result || '';
+    div.style.cursor = 'pointer';
+    div.onclick = () => alert(event.result);
+  }
+  else if (t === 'vault_write') {
+    div.className = 'event event-vault_write';
+    div.innerHTML = `<span class="event-label">VAULT WRITE</span>💾 ${escHtml(event.folder)}/${escHtml(event.title)} <small>(${escHtml(event.action || '')})</small>`;
+  }
+  else if (t === 'entity_found') {
+    div.className = 'event event-entity';
+    const badge = event.known
+      ? `<span class="known">✓ già nel vault</span>`
+      : `<span class="unknown">? da investigare</span>`;
+    div.innerHTML = `<span class="event-label">ENTITÀ</span>👤 ${escHtml(event.name)} ${badge}`;
+  }
+  else if (t === 'error') {
+    div.className = 'event event-error';
+    div.innerHTML = `<span class="event-label">ERRORE</span>⚠ ${escHtml(event.message)}`;
+  }
+  else {
+    return; // evento non visualizzato nell'activity feed
+  }
+
+  feed.appendChild(div);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function setInputVisible(visible) {
+  const area = document.getElementById('input-area');
+  area.classList.toggle('hidden', !visible);
+  if (!visible) {
+    // nascondi anche il parladi quando l'input sparisce
+    document.getElementById('parladi-row').classList.add('hidden');
+  }
+}
+
+// ── Controlli conversazione ────────────────────────────────
+
+function changeTopic() {
+  if (!waitingForInput) return;
+  ws.send(JSON.stringify({ type: 'user_input', text: '[[CHANGE_TOPIC]]' }));
+  waitingForInput = false;
+  setInputVisible(false);
+}
+
+function toggleParlaDi() {
+  const row = document.getElementById('parladi-row');
+  row.classList.toggle('hidden');
+  if (!row.classList.contains('hidden')) {
+    document.getElementById('parladi-input').focus();
+  }
+}
+
+function sendParlaDi() {
+  if (!waitingForInput) return;
+  const topic = document.getElementById('parladi-input').value.trim();
+  if (!topic) return;
+  ws.send(JSON.stringify({ type: 'user_input', text: `[[TOPIC:${topic}]]` }));
+  document.getElementById('parladi-input').value = '';
+  document.getElementById('parladi-row').classList.add('hidden');
+  waitingForInput = false;
+  setInputVisible(false);
+}
+
+
+// ── Archivista proposals ───────────────────────────────────
+
+function _renderNotes(notes, containerId, loadContent) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  (notes || []).forEach(n => {
+    const div = document.createElement('div');
+    div.className = 'proposal-note';
+    const label = `${(n.folder||'').replace(/\/$/, '')}/${n.title}`;
+    const body = document.createElement('div');
+    body.className = 'proposal-note-body';
+    body.textContent = '...';
+    div.innerHTML = `<div class="proposal-note-title">${escHtml(label)}</div>`;
+    div.appendChild(body);
+    el.appendChild(div);
+
+    if (loadContent && n.folder && n.title) {
+      // Carica il contenuto dal vault via HTTP
+      const folder = (n.folder || '').replace(/\/$/, '');
+      fetch(`/vault/note?folder=${encodeURIComponent(folder)}&title=${encodeURIComponent(n.title)}`)
+        .then(r => r.json())
+        .then(d => { body.textContent = d.content || '(vuota)'; })
+        .catch(() => { body.textContent = '(errore caricamento)'; });
+    } else if (n.content) {
+      body.textContent = n.content;
+    }
+  });
+}
+
+function showProposal(event) {
+  document.getElementById('proposal-motivation').textContent = event.motivation || '';
+  _renderNotes(event.before, 'proposal-before', true);
+  _renderNotes(event.after, 'proposal-after', false);
+  document.getElementById('reject-reason').classList.remove('visible');
+  document.getElementById('reject-reason').value = '';
+  document.getElementById('proposal-area').classList.add('visible');
+  waitingForInput = true;
+}
+
+function hideProposal() {
+  document.getElementById('proposal-area').classList.remove('visible');
+  waitingForInput = false;
+}
+
+function approveProposal() {
+  if (!waitingForInput) return;
+  ws.send(JSON.stringify({ type: 'user_input', text: '[[APPROVE]]' }));
+  hideProposal();
+}
+
+function showRejectInput() {
+  const input = document.getElementById('reject-reason');
+  input.classList.add('visible');
+  input.focus();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('reject-reason').addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const reason = e.target.value.trim();
+      if (!waitingForInput) return;
+      ws.send(JSON.stringify({ type: 'user_input', text: `[[REJECT:${reason}]]` }));
+      hideProposal();
+    }
+    if (e.key === 'Escape') {
+      e.target.classList.remove('visible');
+    }
+  });
+
+  document.getElementById('parladi-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') sendParlaDi();
+    if (e.key === 'Escape') document.getElementById('parladi-row').classList.add('hidden');
+  });
+});
+
+// ── Registrazione audio (biografo) ────────────────────────
+
+async function toggleRecording() {
+  if (isRecording) {
+    stopRecording();
+  } else {
+    await startRecording();
+  }
+}
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioChunks = [];
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+    mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      await sendAudioForTranscription();
+    };
+    mediaRecorder.start();
+    isRecording = true;
+    document.getElementById('record-btn').classList.add('recording');
+    document.getElementById('record-btn').textContent = '⏹';
+    document.getElementById('record-hint').textContent = 'registrazione in corso — clicca per fermare';
+  } catch (err) {
+    addConvMessage('status', '⚠ Microfono non accessibile: ' + err.message);
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && isRecording) {
+    mediaRecorder.stop();
+    isRecording = false;
+    document.getElementById('record-btn').classList.remove('recording');
+    document.getElementById('record-btn').textContent = '🎤';
+    document.getElementById('record-hint').textContent = 'trascrivo...';
+  }
+}
+
+async function sendAudioForTranscription() {
+  const blob = new Blob(audioChunks, { type: 'audio/webm' });
+  const form = new FormData();
+  form.append('audio', blob, 'audio.webm');
+
+  try {
+    const res = await fetch('/transcribe', { method: 'POST', body: form });
+    const data = await res.json();
+    if (data.error) {
+      addConvMessage('status', '⚠ Errore trascrizione: ' + data.error);
+      document.getElementById('record-hint').textContent = 'clicca per riprovare';
+      return;
+    }
+    const text = data.text || '';
+    if (!text) {
+      document.getElementById('record-hint').textContent = 'niente rilevato — riprova';
+      return;
+    }
+    // Mostra preview editabile
+    document.getElementById('transcript-text').value = text;
+    document.getElementById('transcript-preview').classList.remove('hidden');
+    document.getElementById('record-hint').textContent = 'controlla e conferma';
+    document.getElementById('transcript-text').focus();
+  } catch (err) {
+    addConvMessage('status', '⚠ Errore di rete: ' + err.message);
+  }
+}
+
+function confirmTranscript() {
+  const text = document.getElementById('transcript-text').value.trim();
+  if (!text) return;
+  ws.send(JSON.stringify({ type: 'user_input', text }));
+  document.getElementById('record-area').classList.add('hidden');
+  document.getElementById('transcript-preview').classList.add('hidden');
+}
+
+function discardTranscript() {
+  document.getElementById('transcript-preview').classList.add('hidden');
+  document.getElementById('record-hint').textContent = 'clicca per registrare';
+}
+
+// ── Light/Dark mode ────────────────────────────────────────
+
+function toggleTheme() {
+  const light = document.body.classList.toggle('light');
+  document.getElementById('theme-btn').textContent = light ? '🌙 scuro' : '☀ chiaro';
+}
+
+function sendInput() {
+  if (!waitingForInput) return;
+  const input = document.getElementById('user-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  ws.send(JSON.stringify({ type: 'user_input', text }));
+  input.value = '';
+  waitingForInput = false;
+  setInputVisible(false);
+}
+
+document.getElementById('user-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') sendInput();
+  if (e.key === 'Escape') {
+    document.getElementById('user-input').value = 'fine';
+    sendInput();
+  }
+});
+
+// ── System prompt modal ────────────────────────────────────
+
+function showSystemPrompt() {
+  document.getElementById('sys-prompt-content').textContent = systemPrompt || '(non ancora ricevuto)';
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+function closeModal(e) {
+  if (e.target.id === 'modal') document.getElementById('modal').classList.add('hidden');
+}
+
+// ── Tab switching ──────────────────────────────────────────
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('activity-feed').classList.toggle('active', tab === 'events');
+  document.getElementById('activity-feed').style.display = tab === 'events' ? 'flex' : 'none';
+  document.getElementById('raw-log').classList.toggle('active', tab === 'raw');
+}
+
+// ── Raw log ────────────────────────────────────────────────
+
+let _rawCallN = -1;  // traccia il call corrente per aggiungere response al blocco giusto
+
+function _rawBlock(kind, label, content, id) {
+  const wrap = document.createElement('div');
+  wrap.className = `raw-block raw-${kind}`;
+  if (id) wrap.id = id;
+
+  const header = document.createElement('div');
+  header.className = 'raw-block-header';
+  // Show preview (first 80 chars) in header when collapsed
+  const preview = (content || '').replace(/\n/g, ' ').substring(0, 80);
+  const hasContent = content && content.trim().length > 0;
+  header.innerHTML = `<span>${escHtml(label)}${hasContent ? ' — <small style="opacity:0.6;font-weight:normal;text-transform:none">' + escHtml(preview) + '…</small>' : ''}</span><span>▸</span>`;
+
+  const body = document.createElement('div');
+  body.className = 'raw-block-body collapsed';  // collapsed by default
+  body.textContent = content;
+
+  // click header → collapse/expand
+  header.onclick = () => {
+    body.classList.toggle('collapsed');
+    header.querySelector('span:last-child').textContent =
+      body.classList.contains('collapsed') ? '▸' : '▾';
+  };
+
+  wrap.appendChild(header);
+  if (hasContent) wrap.appendChild(body);  // skip empty bodies entirely
+  return wrap;
+}
+
+function addRawCall(event) {
+  const log = document.getElementById('raw-log');
+  const n = event.call_n;
+  _rawCallN = n;
+
+  // Separatore visivo tra step
+  const sep = document.createElement('div');
+  sep.style.cssText = 'border-top:2px solid var(--accent);margin:12px 0 4px;opacity:0.3;';
+  const stepLabel = document.createElement('div');
+  stepLabel.style.cssText = 'font-size:11px;color:var(--accent);font-weight:600;margin-bottom:4px;';
+  stepLabel.textContent = `── Step ${n} ──`;
+  log.appendChild(sep);
+  log.appendChild(stepLabel);
+
+  // System prompt (solo al primo step, poi è uguale)
+  if (n <= 1 && event.system) {
+    log.appendChild(_rawBlock('system', 'SYSTEM', event.system));
+  }
+
+  // Prompt (history)
+  if (event.prompt) {
+    log.appendChild(_rawBlock('prompt', 'PROMPT', event.prompt, `raw-prompt-${n}`));
+  }
+
+  log.scrollTop = log.scrollHeight;
+}
+
+function addRawResponse(event) {
+  const log = document.getElementById('raw-log');
+  if (!event.text || !event.text.trim()) return;  // skip empty responses
+  const respBlock = _rawBlock('response', 'RESPONSE', event.text);
+  log.appendChild(respBlock);
+  log.scrollTop = log.scrollHeight;
+}
+
+// ── Resize panel ──────────────────────────────────────────
+
+(function() {
+  const handle = document.getElementById('resize-handle');
+  const main = document.querySelector('main');
+  let dragging = false;
+
+  handle.addEventListener('mousedown', e => {
+    dragging = true;
+    handle.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const rect = main.getBoundingClientRect();
+    const rightW = Math.max(180, Math.min(rect.width - 300, rect.right - e.clientX));
+    main.style.gridTemplateColumns = `1fr 5px ${rightW}px`;
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+})();
+
+// ── Utils ──────────────────────────────────────────────────
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

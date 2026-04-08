@@ -6,7 +6,19 @@
       "Bash(pip install:*)",
       "Bash(python -c \"import sys; print\\(sys.executable\\)\")",
       "Bash(python -m pip install sounddevice faster-whisper pyttsx3 requests)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(gh auth:*)",
+      "Bash(git credential-manager:*)",
+      "Bash(git config:*)",
+      "Bash(tailscale status:*)",
+      "Bash(curl -s http://100.107.20.71:11434/api/tags)",
+      "Bash(python -c \":*)",
+      "WebFetch(domain:deepwiki.com)",
+      "Bash(git checkout:*)",
+      "Bash(python -c \"from core.tools import tool_prompt_block; print\\(tool_prompt_block\\(\\)\\)\")",
+      "Bash(python -c \"from core.agent import run; from core.tools import tool_prompt_block; print\\(''import ok''\\)\")"
     ]
   }
 }

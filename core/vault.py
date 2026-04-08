@@ -89,24 +89,53 @@ def merge(folder: str, title: str, new_content: str, tags: list[str] = None):
         write(folder, title, new_content, tags)
 
 
+def delete(folder: str, title: str) -> bool:
+    """Elimina una nota. Ritorna True se esisteva."""
+    p = path_for(folder, title)
+    if os.path.exists(p):
+        os.remove(p)
+        return True
+    return False
+
+
+def rename(folder: str, old_title: str, new_title: str):
+    """Rinomina una nota (stessa cartella)."""
+    src = path_for(folder, old_title)
+    dst = path_for(folder, new_title)
+    if os.path.exists(src):
+        os.rename(src, dst)
+
+
+def _iter_notes():
+    """Genera (folder, fname, fpath) per tutte le note nel vault, escludendo cartelle di sistema."""
+    skip = {".obsidian", "Archivista"}
+    for entry in sorted(os.scandir(VAULT_PATH), key=lambda e: e.name):
+        if not entry.is_dir() or entry.name in skip or entry.name.startswith("."):
+            continue
+        for fname in sorted(os.listdir(entry.path)):
+            if fname.endswith(".md"):
+                yield entry.name, fname, os.path.join(entry.path, fname)
+
+
+def list_all() -> list[dict]:
+    """Ritorna tutte le note del vault con folder, title e content completo."""
+    notes = []
+    for folder, fname, fpath in _iter_notes():
+        with open(fpath, "r", encoding="utf-8") as f:
+            content = f.read()
+        notes.append({"folder": folder, "title": fname[:-3], "content": content})
+    return notes
+
+
 def context_summary(max_chars: int = 3000) -> str:
     """Restituisce un riassunto del vault esistente per dare contesto al modello."""
     lines = []
-    for folder in VAULT_FOLDERS:
-        folder_path = os.path.join(VAULT_PATH, folder)
-        if not os.path.exists(folder_path):
-            continue
-        for fname in sorted(os.listdir(folder_path)):
-            if not fname.endswith(".md"):
-                continue
-            fpath = os.path.join(folder_path, fname)
-            with open(fpath, "r", encoding="utf-8") as f:
-                content = f.read()
-            # Strip frontmatter per brevità
-            body = re.sub(r"^---.*?---\n", "", content, flags=re.DOTALL).strip()
-            preview = body[:300].replace("\n", " ")
-            lines.append(f"[{folder}/{fname[:-3]}]: {preview}")
-            if sum(len(l) for l in lines) > max_chars:
-                break
-
+    for folder, fname, fpath in _iter_notes():
+        with open(fpath, "r", encoding="utf-8") as f:
+            content = f.read()
+        body = re.sub(r"^---.*?---\n", "", content, flags=re.DOTALL).strip()
+        preview = body[:300].replace("\n", " ")
+        lines.append(f"[{folder}/{fname[:-3]}]: {preview}")
+        if sum(len(l) for l in lines) > max_chars:
+            break
     return "\n".join(lines) if lines else "Vault vuoto."
