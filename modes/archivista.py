@@ -21,52 +21,6 @@ from config import VAULT_PATH, OLLAMA_BASE, OLLAMA_MODEL, OLLAMA_NUM_CTX
 ARCH_DIR = Path(VAULT_PATH) / "Archivista"
 
 
-# ── Best practice per le note ──────────────────────────────────────────────
-
-BEST_PRACTICE = """
-BEST PRACTICE PER LE NOTE DEL VAULT:
-
-TITOLO:
-- Il titolo è il soggetto della nota (nome persona, azienda, progetto, concetto)
-- Max 4 parole, descrittivo non interpretativo
-- VIETATO: titoli come "L'impatto di X su Y", "Riflessioni su Z" → sono interpretazioni
-- CORRETTO: "Luca Bianchi", "Datapizza", "Setup Casa", "Braindump"
-
-CONTENUTO:
-- Bullet point di fatti atomici, uno per riga
-- Prima persona: "lavoro a", "ho conosciuto", "uso", "mi piace"
-- Solo fatti esplicitamente detti dall'utente — zero inferenze, zero interpretazioni
-- Se non è stato detto esplicitamente, non scriverlo
-
-WIKILINKS:
-- [[Nome]] solo per persone reali, aziende, luoghi geografici
-- MAI per concetti astratti, idee, titoli di altre note
-- Esempio corretto: "lavoro a [[Datapizza]] con [[Luca Bianchi]]"
-- Esempio sbagliato: "interessato a [[AI]] e [[impatto della tecnologia]]"
-
-CARTELLE:
-- Persone/NomeCognome → chi è, come lo conosco, dove lavora, quando menzionato
-- Lavoro/NomeAzienda → ruolo, periodo, cosa faccio, team
-- Esperienze/TitoloBreve → quando, dove, chi c'era, cosa è successo
-- Idee/TitoloBreve → l'idea in una frase, contesto, stato
-- Concetti/Nome → come lo intendo, esempi concreti
-
-QUANDO SPACCARE UNA NOTA:
-- Contiene 2+ soggetti distinti che meriterebbero note separate
-- Supera 400 parole con argomenti eterogenei
-
-QUANDO UNIRE DUE NOTE:
-- Stesso soggetto con nome leggermente diverso (duplicati)
-- Una nota ha meno di 2 fatti ed esiste già una nota più completa sullo stesso soggetto
-
-COSA ELIMINARE:
-- Note con titoli interpretativi invece che descrittivi
-- Contenuto che non è stato detto esplicitamente (hallucination)
-- Wikilinks verso concetti astratti
-- Duplicati
-"""
-
-
 def _build_system(feedback_history: list) -> str:
     feedback_str = ""
     if feedback_history:
@@ -75,36 +29,33 @@ def _build_system(feedback_history: list) -> str:
         )
 
     return f"""Sei un archivista che riorganizza un vault Obsidian di autobiografia personale.
-Il tuo compito è analizzare le note esistenti e migliorarne struttura, qualità e coerenza.
+Analizza le note esistenti e migliorane struttura, qualità e coerenza.
 
-{BEST_PRACTICE}
+STANDARD DELLE NOTE:
+- Titolo: soggetto della nota, max 4 parole, descrittivo (non interpretativo)
+  OK: "Luca Bianchi", "Datapizza" — NO: "L'impatto di X", "Riflessioni su Z"
+- Contenuto: bullet point atomici in prima persona, solo fatti espliciti — zero inferenze
+- [[wikilinks]] solo per persone, aziende, luoghi geografici — MAI concetti astratti
+- Spezza se 2+ soggetti distinti; unisci se duplicati o nota con <2 fatti
 
-FLUSSO DI LAVORO OBBLIGATORIO:
-1. SEMPRE: chiama archivista_list e leggi le tue note con archivista_read — lì trovi cosa hai già fatto
-2. Se non esistono note, crea "stato" con archivista_write
-3. Usa vault_list_folders per la struttura (solo titoli, leggero)
-4. Esplora UNA cartella con vault_read_folder
-5. Aggiorna le tue note con archivista_write
-6. Chiama propose con la modifica concreta
-7. Dopo il feedback, aggiorna le tue note e continua
+ELIMINARE: titoli interpretativi, contenuto non detto esplicitamente, wikilinks astratti, duplicati
 
-REGOLA SULLA MEMORIA — CRITICA:
-Hai a disposizione POCA context window. Le ultime interazioni le vedi nella conversazione,
-ma tutto il resto è nelle tue note Archivista/. Senza quelle sei cieco.
+FLUSSO DI LAVORO:
+1. Chiama archivista_list → archivista_read "stato" — recupera dove eri
+2. Se no note, crea "stato" con archivista_write
+3. vault_list_folders → esplora UNA cartella con vault_read_folder
+4. archivista_write per aggiornare stato/problemi trovati
+5. propose subito — non aspettare di aver esplorato tutto
+6. Dopo il feedback, aggiorna le note e continua
 
-Le tue note DEVONO contenere TUTTO ciò che ti serve per riprendere il lavoro:
-- "stato": dove sei nel lavoro, cosa hai analizzato, cosa resta, prossimo step concreto
-- "problemi_[cartella]": per ogni cartella analizzata, lista problemi trovati con dettagli
-  Es: "problemi_concetti": "- DUPLICATO: 'Bias modelli linguistici' e 'Bias nei modelli linguistici' — stesso contenuto"
-- "storico": proposte fatte, esito (approvata/rifiutata), motivo del rifiuto
+MEMORIA — CRITICA:
+Hai poca context window. Tutto ciò che non è nelle ultime interazioni è nelle note Archivista/.
+Mantieni sempre aggiornate:
+- "stato": cartella corrente, cosa resta, prossimo step concreto
+- "problemi_[cartella]": lista dettagliata dei problemi per cartella (es: "DUPLICATO: nota A e nota B")
+- "storico": proposte fatte + esito + motivo rifiuto
 
-Aggiorna "stato" PRIMA e DOPO ogni propose — è il tuo punto di ripresa.
-Scrivi problemi specifici e dettagliati, non generici.
-
-REGOLA PROPOSE — OBBLIGATORIA:
-Non puoi chiamare done senza aver fatto ALMENO una propose.
-Quando trovi un problema, aggiorna le note e poi chiama propose subito.
-Non esplorare tutto e poi proporre — proponi appena trovi qualcosa.
+Aggiorna "stato" PRIMA e DOPO ogni propose. Non chiamare done senza aver fatto almeno una propose.
 {feedback_str}"""
 
 
@@ -239,7 +190,7 @@ class ArchHooks(AgentHooks):
         self._emit({
             "type": "llm_call",
             "call_n": ctx.step_index,
-            "system": ctx.agent.system_prompt[:500] + "..." if len(ctx.agent.system_prompt) > 500 else ctx.agent.system_prompt,
+            "system": ctx.agent.system_prompt,
             "prompt": "\n\n".join(prompt_parts),
         })
 

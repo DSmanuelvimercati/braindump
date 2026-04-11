@@ -130,11 +130,15 @@ async def ws_endpoint(websocket: WebSocket):
         except WebSocketDisconnect:
             pass
 
+    fwd_task = asyncio.create_task(forward_events())
+    rcv_task = asyncio.create_task(receive_inputs())
     try:
-        await asyncio.gather(forward_events(), receive_inputs())
+        await asyncio.gather(fwd_task, rcv_task)
     except Exception:
         pass
     finally:
+        fwd_task.cancel()
+        rcv_task.cancel()
         input_q.put("fine")
 
 

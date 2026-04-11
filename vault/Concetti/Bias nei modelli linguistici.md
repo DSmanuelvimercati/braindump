@@ -5,6 +5,6 @@ date: 2026-04-08
 updated: 2026-04-08
 ---
 
-* Ho analizzato come l'analisi di modelli come [[word2vec]] evidenzi l'apprendimento di bias presenti nei corpora di addestramento.
-* Ho compreso che i sistemi AI linguistici riflettono i pregiudizi del mondo reale.
-* Ho lavorato per interrogare i sistemi AI linguistici sulle premesse sociali che hanno assorbito.
+- Ho analizzato word2vec e come i bias nei corpora di addestramento vengano assorbiti dal modello
+- I sistemi linguistici AI riflettono i pregiudizi presenti nel testo su cui sono addestrati
+- Ho lavorato per interrogare questi modelli sulle premesse sociali implicite

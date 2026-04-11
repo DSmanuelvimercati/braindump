@@ -2,10 +2,10 @@
 title: "Temi di ricerca e NLP"
 tags: ['NLP', 'MachineLearning', 'RicercaAccademica', 'BERT', 'word2vec']
 date: 2026-04-06
-updated: 2026-04-06
+updated: 2026-04-11
 ---
 
-Quando ripenso al mio [[Dottorato]], mi accorgo che i miei progetti si sono concentrati su aree molto tecniche di Elaborazione del Linguaggio Naturale (NLP). Ho affrontato, ad esempio:
-*   [[Fine-Grained Entity Typing]] mediante tecniche [[NeuroSymbolic Integration]] e [[FewShot Example]].
-*   Ottimizzazione e messa a punto ([[finetuning]]) di modelli linguistici pre-addestrati come [[BERT]].
-*   L'analisi critica dei [[bias impliciti]] insiti in vettorializzatori come [[word2vec]], dimostrando come questi bias siano intrinsecamente legati ai [[corpora specifici]] di addestramento. Queste ricerche sono fondamentali per chi lavora con i [[LLM]].
+- Ho fatto ricerca su Fine-Grained Entity Typing con tecniche neuro-simboliche e few-shot learning
+- Ho fatto finetuning di modelli pre-addestrati come BERT
+- Ho analizzato bias impliciti in word2vec, dimostrando che i bias dipendono dai corpora di addestramento
+- Non sto più conducendo ricerca attiva su questi temi

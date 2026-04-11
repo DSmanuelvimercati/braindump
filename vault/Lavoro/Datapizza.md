@@ -2,6 +2,7 @@
 title: "Datapizza"
 tags: ['lavoro', 'azienda']
 date: 2026-04-06
-updated: 2026-04-06
+updated: 2026-04-11
 ---
-Lavoro in Datapizza, un azienda nel settore AI
+
+- Lavoro a Datapizza, azienda nel settore AI

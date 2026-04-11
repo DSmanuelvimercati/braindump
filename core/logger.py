@@ -15,6 +15,12 @@ class SessionLogger:
         self._f = open(self.path, "w", encoding="utf-8")
         self._write(f"# Session log — {mode} — {ts}\n\n")
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
     def _write(self, text: str):
         self._f.write(text)
         self._f.flush()

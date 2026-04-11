@@ -68,8 +68,9 @@ Restituisci il JSON delle operazioni."""
         if match:
             data = json.loads(match.group(0))
             return data.get("operazioni", [])
-    except json.JSONDecodeError:
-        pass
+        print(f"  [extractor] nessun JSON trovato nella risposta: {raw[:200]!r}", flush=True)
+    except json.JSONDecodeError as e:
+        print(f"  [extractor] JSON non valido: {e} — risposta: {raw[:200]!r}", flush=True)
 
     return []
 
