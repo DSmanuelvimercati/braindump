@@ -278,6 +278,7 @@
     gap: 8px;
   }
   .raw-log.active { display: flex; }
+  .raw-log > * { flex-shrink: 0; }
   .raw-log::-webkit-scrollbar { width: 6px; }
   .raw-log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
   .raw-block {
@@ -332,6 +333,139 @@
   }
   .activity-feed::-webkit-scrollbar { width: 4px; }
   .activity-feed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* Flow view */
+  .flow-view {
+    flex: 1;
+    height: 0;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 20px 16px;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+  .flow-view.active { display: flex; }
+  .flow-view > * { flex-shrink: 0; }
+  .flow-view::-webkit-scrollbar { width: 6px; }
+  .flow-view::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .flow-arrow {
+    width: 2px;
+    height: 24px;
+    background: var(--accent);
+    opacity: 0.4;
+    position: relative;
+  }
+  .flow-arrow::after {
+    content: '▼';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 8px;
+    color: var(--accent);
+    opacity: 0.8;
+  }
+
+  .flow-node {
+    width: 100%;
+    max-width: 340px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .flow-node:hover { border-color: var(--accent); }
+  .flow-node-header {
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .flow-node-badge {
+    font-size: 9px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .flow-node-body {
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+    border-top: 1px solid var(--border);
+  }
+  .flow-node.expanded .flow-node-body { display: block; }
+  .flow-node-preview {
+    padding: 4px 12px 8px;
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .flow-node.expanded .flow-node-preview { display: none; }
+
+  /* Node types */
+  .flow-node.fn-system .flow-node-header { background: #1a1a2e; color: #a5b4fc; }
+  .flow-node.fn-system .flow-node-body { background: #0d0d1a; color: #c4c9d4; }
+  .flow-node.fn-system .flow-node-badge { background: #312e81; color: #a5b4fc; }
+
+  .flow-node.fn-prompt .flow-node-header { background: #0f1a2e; color: #93c5fd; }
+  .flow-node.fn-prompt .flow-node-body { background: #080f1a; color: #c4c9d4; }
+  .flow-node.fn-prompt .flow-node-badge { background: #1e3a5f; color: #93c5fd; }
+
+  .flow-node.fn-response .flow-node-header { background: #0a1a12; color: #6ee7b7; }
+  .flow-node.fn-response .flow-node-body { background: #060d09; color: #d1d5db; }
+  .flow-node.fn-response .flow-node-badge { background: #064e3b; color: #6ee7b7; }
+
+  .flow-node.fn-tool .flow-node-header { background: #1a1a0a; color: #fbbf24; }
+  .flow-node.fn-tool .flow-node-body { background: #0d0d06; color: #d1d5db; }
+  .flow-node.fn-tool .flow-node-badge { background: #78350f; color: #fbbf24; }
+
+  .flow-node.fn-propose .flow-node-header { background: #1a0a1a; color: #f0abfc; }
+  .flow-node.fn-propose .flow-node-body { background: #0d060d; color: #d1d5db; }
+  .flow-node.fn-propose .flow-node-badge { background: #701a75; color: #f0abfc; }
+
+  .flow-node.fn-user .flow-node-header { background: #0a1a1a; color: #67e8f9; }
+  .flow-node.fn-user .flow-node-body { background: #060d0d; color: #d1d5db; }
+  .flow-node.fn-user .flow-node-badge { background: #164e63; color: #67e8f9; }
+
+  .flow-step-label {
+    font-size: 10px;
+    color: var(--accent);
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 8px 0 4px;
+  }
+
+  /* Light mode */
+  body.light .flow-node.fn-system .flow-node-header { background: #ede9fe; color: #6d28d9; }
+  body.light .flow-node.fn-system .flow-node-body { background: #f5f3ff; color: #1f2937; }
+  body.light .flow-node.fn-prompt .flow-node-header { background: #dbeafe; color: #1d4ed8; }
+  body.light .flow-node.fn-prompt .flow-node-body { background: #eff6ff; color: #1f2937; }
+  body.light .flow-node.fn-response .flow-node-header { background: #d1fae5; color: #065f46; }
+  body.light .flow-node.fn-response .flow-node-body { background: #ecfdf5; color: #1f2937; }
+  body.light .flow-node.fn-tool .flow-node-header { background: #fef3c7; color: #92400e; }
+  body.light .flow-node.fn-tool .flow-node-body { background: #fffbeb; color: #1f2937; }
+  body.light .flow-node.fn-propose .flow-node-header { background: #fae8ff; color: #86198f; }
+  body.light .flow-node.fn-propose .flow-node-body { background: #fdf4ff; color: #1f2937; }
+  body.light .flow-node.fn-user .flow-node-header { background: #cffafe; color: #155e75; }
+  body.light .flow-node.fn-user .flow-node-body { background: #ecfeff; color: #1f2937; }
 
   .event {
     padding: 8px 10px;
@@ -705,10 +839,12 @@
       <div class="tab-btns">
         <button class="tab-btn active" onclick="switchTab('events')">eventi</button>
         <button class="tab-btn" onclick="switchTab('raw')">raw</button>
+        <button class="tab-btn" onclick="switchTab('flow')">flow</button>
       </div>
     </div>
     <div class="activity-feed" id="activity-feed"></div>
     <div class="raw-log" id="raw-log"></div>
+    <div class="flow-view" id="flow-view"></div>
   </div>
 </main>
 
@@ -776,15 +912,18 @@ function handleEvent(event) {
   }
   else if (t === 'llm_call') {
     addRawCall(event);
+    addFlowStep(event);
   }
   else if (t === 'llm_response') {
     addRawResponse(event);
+    addFlowResponse(event);
   }
   else if (t === 'tool_call') {
     addActivity(event);
   }
   else if (t === 'tool_result') {
     addActivity(event);
+    addFlowToolResult(event);
   }
   else if (t === 'question') {
     addConvMessage('gemma', event.text);
@@ -794,6 +933,7 @@ function handleEvent(event) {
   }
   else if (t === 'user_answer') {
     addConvMessage('user', event.text);
+    addFlowUserFeedback(event.text);
   }
   else if (t === 'vault_write') {
     addActivity(event);
@@ -803,6 +943,9 @@ function handleEvent(event) {
   }
   else if (t === 'status') {
     addConvMessage('status', event.message);
+    if (event.message && (event.message.includes('Approvata') || event.message.includes('Rifiutata'))) {
+      addFlowUserFeedback(event.message);
+    }
   }
   else if (t === 'proposal') {
     showProposal(event);
@@ -1137,9 +1280,10 @@ function closeModal(e) {
 function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   event.target.classList.add('active');
-  document.getElementById('activity-feed').classList.toggle('active', tab === 'events');
   document.getElementById('activity-feed').style.display = tab === 'events' ? 'flex' : 'none';
+  document.getElementById('activity-feed').classList.toggle('active', tab === 'events');
   document.getElementById('raw-log').classList.toggle('active', tab === 'raw');
+  document.getElementById('flow-view').classList.toggle('active', tab === 'flow');
 }
 
 // ── Raw log ────────────────────────────────────────────────
@@ -1207,6 +1351,155 @@ function addRawResponse(event) {
   const respBlock = _rawBlock('response', 'RESPONSE', event.text);
   log.appendChild(respBlock);
   log.scrollTop = log.scrollHeight;
+}
+
+// ── Flow view ─────────────────────────────────────────────
+
+const _flowData = { steps: [], system: '' };
+
+function _flowNode(type, label, badge, content, preview) {
+  const node = document.createElement('div');
+  node.className = `flow-node fn-${type}`;
+
+  const header = document.createElement('div');
+  header.className = 'flow-node-header';
+  header.innerHTML = `<span>${escHtml(label)}</span><span class="flow-node-badge">${escHtml(badge)}</span>`;
+
+  const prev = document.createElement('div');
+  prev.className = 'flow-node-preview';
+  prev.textContent = preview || '';
+
+  const body = document.createElement('div');
+  body.className = 'flow-node-body';
+  body.textContent = content || '';
+
+  header.onclick = () => node.classList.toggle('expanded');
+
+  node.appendChild(header);
+  if (preview) node.appendChild(prev);
+  if (content) node.appendChild(body);
+  return node;
+}
+
+function _flowArrow() {
+  const arrow = document.createElement('div');
+  arrow.className = 'flow-arrow';
+  return arrow;
+}
+
+function addFlowStep(event) {
+  // Called from handleEvent for llm_call
+  const flow = document.getElementById('flow-view');
+  const n = event.call_n;
+
+  // System prompt — only on first step
+  if (n <= 1 && event.system && !_flowData.system) {
+    _flowData.system = event.system;
+    flow.appendChild(_flowNode(
+      'system', 'SYSTEM PROMPT', 'costante',
+      event.system,
+      event.system.substring(0, 60) + '…'
+    ));
+    flow.appendChild(_flowArrow());
+  }
+
+  // Step label
+  const stepLabel = document.createElement('div');
+  stepLabel.className = 'flow-step-label';
+  stepLabel.textContent = `step ${n}`;
+  flow.appendChild(stepLabel);
+
+  // Prompt node (memory/history sent to LLM)
+  if (event.prompt && event.prompt.trim()) {
+    const lines = event.prompt.split('\n').filter(l => l.trim());
+    const composition = lines.map(l => {
+      if (l.startsWith('[tool_call:')) return '🔧 ' + l.match(/tool_call: (\w+)/)?.[1] || 'tool';
+      if (l.startsWith('[result:')) return '📋 ' + l.match(/result: (\w+)/)?.[1] || 'result';
+      return '💬 ' + l.substring(0, 40);
+    }).slice(0, 6).join('\n') + (lines.length > 6 ? `\n… +${lines.length - 6} righe` : '');
+
+    flow.appendChild(_flowNode(
+      'prompt', `PROMPT → LLM`, `${lines.length} parti`,
+      event.prompt,
+      composition.split('\n')[0] + (lines.length > 1 ? ` (+${lines.length - 1})` : '')
+    ));
+    flow.appendChild(_flowArrow());
+  }
+
+  // Store step index for response matching
+  _flowData.currentStep = n;
+  flow.scrollTop = flow.scrollHeight;
+}
+
+function addFlowResponse(event) {
+  const flow = document.getElementById('flow-view');
+  if (!event.text || !event.text.trim()) return;
+
+  // Parse response to identify tool calls
+  const lines = event.text.split('\n').filter(l => l.trim());
+  const toolCalls = lines.filter(l => l.includes('tool_call:'));
+  const textLines = lines.filter(l => !l.includes('tool_call:'));
+
+  if (toolCalls.length > 0) {
+    const toolNames = toolCalls.map(l => l.match(/tool_call: (\w+)/)?.[1] || '?').join(', ');
+    flow.appendChild(_flowNode(
+      'response', `LLM → TOOL CALL`, toolNames,
+      event.text,
+      toolCalls[0].substring(0, 50) + '…'
+    ));
+  } else {
+    flow.appendChild(_flowNode(
+      'response', `LLM → RISPOSTA`, 'testo',
+      event.text,
+      textLines[0]?.substring(0, 50) + '…'
+    ));
+  }
+  flow.appendChild(_flowArrow());
+  flow.scrollTop = flow.scrollHeight;
+}
+
+function addFlowToolResult(event) {
+  const flow = document.getElementById('flow-view');
+  const name = event.tool || '?';
+  const result = event.result || '';
+
+  // Special nodes for propose/done
+  if (name === 'propose') {
+    try {
+      const parsed = JSON.parse(result);
+      flow.appendChild(_flowNode(
+        'propose', 'PROPOSE', 'approvazione',
+        result,
+        parsed.motivation?.substring(0, 60) + '…'
+      ));
+    } catch {
+      flow.appendChild(_flowNode('propose', 'PROPOSE', 'approvazione', result, result.substring(0, 60)));
+    }
+  } else if (name === 'done') {
+    flow.appendChild(_flowNode(
+      'propose', 'DONE', 'fine sessione',
+      result, result.substring(0, 60)
+    ));
+  } else {
+    flow.appendChild(_flowNode(
+      'tool', `${name}()`, 'risultato',
+      result,
+      result.substring(0, 60) + (result.length > 60 ? '…' : '')
+    ));
+  }
+  flow.appendChild(_flowArrow());
+  flow.scrollTop = flow.scrollHeight;
+}
+
+function addFlowUserFeedback(text) {
+  const flow = document.getElementById('flow-view');
+  flow.appendChild(_flowNode(
+    'user', 'UTENTE', 'feedback',
+    text,
+    text.substring(0, 60)
+  ));
+  flow.appendChild(_flowArrow());
+  flow.scrollTop = flow.scrollHeight;
 }
 
 // ── Resize panel ──────────────────────────────────────────
