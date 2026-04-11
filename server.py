@@ -82,7 +82,6 @@ async def ws_endpoint(websocket: WebSocket):
     mode = init.get("mode", "intervistatore")
 
     # Manda system prompt iniziale e stato vault
-    from core.tools import tool_prompt_block
     from modes.intervistatore import _build_system
     system_preview = _build_system([], [])
     await websocket.send_json({"type": "session_start", "mode": mode, "system_prompt": system_preview})
