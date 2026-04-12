@@ -14,6 +14,8 @@ from datapizza.tools import tool
 from datapizza.type import FunctionCallBlock, FunctionCallResultBlock, TextBlock
 
 from core import vault
+from core.memory_utils import trim_memory
+from core import vault_search as vault_search_mod
 from config import VAULT_PATH, OLLAMA_BASE, OLLAMA_MODEL, OLLAMA_NUM_CTX
 
 
@@ -43,10 +45,12 @@ ELIMINARE: titoli interpretativi, contenuto non detto esplicitamente, wikilinks 
 FLUSSO DI LAVORO:
 1. Chiama archivista_list → archivista_read "stato" — recupera dove eri
 2. Se no note, crea "stato" con archivista_write
-3. vault_list_folders → esplora UNA cartella con vault_read_folder
-4. archivista_write per aggiornare stato/problemi trovati
-5. propose subito — non aspettare di aver esplorato tutto
-6. Dopo il feedback, aggiorna le note e continua
+3. vault_audit per una panoramica (duplicati, gap, note senza tag)
+4. vault_find_duplicates per trovare note simili da unire
+5. vault_read_folder per esplorare UNA cartella nel dettaglio
+6. archivista_write per aggiornare stato/problemi trovati
+7. propose subito — non aspettare di aver esplorato tutto
+8. Dopo il feedback, aggiorna le note e continua
 
 MEMORIA — CRITICA:
 Hai poca context window. Tutto ciò che non è nelle ultime interazioni è nelle note Archivista/.
@@ -125,6 +129,24 @@ def vault_read_note(folder: str, title: str) -> str:
     return content if content else f"Nota {folder}/{title} non trovata."
 
 
+@tool
+def vault_audit() -> str:
+    """Report completo del vault: statistiche, gap, duplicati, note senza tag, note troppo corte."""
+    return vault_search_mod.audit()
+
+
+@tool
+def vault_find_duplicates() -> str:
+    """Trova coppie di note probabilmente duplicate (fuzzy match su titolo e contenuto)."""
+    dupes = vault_search_mod.find_duplicates()
+    if not dupes:
+        return "Nessun duplicato trovato."
+    lines = [f"POSSIBILI DUPLICATI ({len(dupes)}):"]
+    for d in dupes:
+        lines.append(f"  {d['folder_a']}/{d['title_a']} ~ {d['folder_b']}/{d['title_b']} (sim: {d['similarity']})")
+    return "\n".join(lines)
+
+
 @tool(end=True)
 def propose(motivation: str, before_json: str, after_json: str, delete_json: str) -> str:
     """Proponi una modifica al vault. Richiede approvazione dell'utente.
@@ -160,6 +182,7 @@ def done(summary: str) -> str:
 ALL_TOOLS = [
     archivista_list, archivista_read, archivista_write,
     vault_list_folders, vault_read_folder, vault_read_note,
+    vault_audit, vault_find_duplicates,
     propose, done,
 ]
 
@@ -275,14 +298,11 @@ def run_session(emit, get_input, logger=None):
     ops_count = 0
     first_run = True
 
-    MAX_MEMORY_TURNS = 8  # Turni recenti da mantenere (il resto è nelle note)
-
     while True:
         system = _build_system(feedback_history)
 
-        # Trim memory: tieni solo gli ultimi N turni per stare dentro num_ctx
-        while len(shared_memory) > MAX_MEMORY_TURNS:
-            del shared_memory[0]
+        # Trim memory: budget dinamico basato su token, non turni fissi
+        trim_memory(shared_memory, system)
 
         agent = Agent(
             name="archivista",

@@ -4,7 +4,6 @@ Fa domande biografiche specifiche, una alla volta, consultando il vault.
 """
 
 import json
-import os
 import re
 
 from datapizza.agents import Agent
@@ -15,57 +14,9 @@ from datapizza.type import FunctionCallBlock, FunctionCallResultBlock, TextBlock
 
 from core import vault, extractor
 from core.model import think
-from config import VAULT_PATH, VAULT_FOLDERS, OLLAMA_BASE, OLLAMA_MODEL, OLLAMA_NUM_CTX
-
-
-# ── Vault helpers (usati sia dai tool che internamente) ──────────────────
-
-def _search_vault(query: str) -> str:
-    """Cerca nel vault per keyword."""
-    query_lower = query.lower()
-    results = []
-    for folder in VAULT_FOLDERS:
-        folder_path = os.path.join(VAULT_PATH, folder)
-        if not os.path.exists(folder_path):
-            continue
-        for fname in os.listdir(folder_path):
-            if not fname.endswith(".md"):
-                continue
-            fpath = os.path.join(folder_path, fname)
-            with open(fpath, "r", encoding="utf-8") as f:
-                content = f.read()
-            if query_lower in content.lower() or query_lower in fname.lower():
-                body = re.sub(r"^---.*?---\n", "", content, flags=re.DOTALL).strip()
-                preview = body[:300].replace("\n", " ")
-                results.append(f"[{folder}/{fname[:-3]}]: {preview}")
-    if not results:
-        return f"Nessuna nota trovata per '{query}'."
-    return "\n\n".join(results[:5])
-
-
-def _get_entity(name: str) -> str:
-    """Recupera tutto ciò che si sa su un'entità."""
-    name_lower = name.lower()
-    results = []
-    for folder in VAULT_FOLDERS:
-        folder_path = os.path.join(VAULT_PATH, folder)
-        if not os.path.exists(folder_path):
-            continue
-        for fname in os.listdir(folder_path):
-            if not fname.endswith(".md"):
-                continue
-            if name_lower in fname.lower():
-                fpath = os.path.join(folder_path, fname)
-                with open(fpath, "r", encoding="utf-8") as f:
-                    content = f.read()
-                body = re.sub(r"^---.*?---\n", "", content, flags=re.DOTALL).strip()
-                results.append(f"[{folder}/{fname[:-3]}]\n{body}")
-    if not results:
-        mention_results = _search_vault(name)
-        if "Nessuna nota trovata" not in mention_results:
-            return f"Nessuna nota dedicata a '{name}', ma viene menzionato in:\n{mention_results}"
-        return f"'{name}' non è presente nel vault."
-    return "\n\n---\n\n".join(results)
+from core import vault_search as vault_search_mod
+from core.memory_utils import trim_memory
+from config import OLLAMA_BASE, OLLAMA_MODEL, OLLAMA_NUM_CTX
 
 
 # ── Tool definitions ──────────────────────────────────────────────────────
@@ -82,37 +33,19 @@ def vault_read(folder: str, title: str) -> str:
 @tool
 def vault_search(query: str) -> str:
     """Cerca nel vault per keyword. Ritorna le note rilevanti."""
-    return _search_vault(query)
+    return vault_search_mod.search(query)
 
 
 @tool
 def vault_get_entity(name: str) -> str:
     """Recupera tutto ciò che si sa su una persona o concetto specifico."""
-    return _get_entity(name)
+    return vault_search_mod.get_entity(name)
 
 
 @tool
 def vault_get_gaps() -> str:
     """Trova aree del vault poco sviluppate: entità menzionate nei wikilinks ma senza nota dedicata."""
-    all_links = set()
-    all_notes = set()
-    for folder in VAULT_FOLDERS:
-        folder_path = os.path.join(VAULT_PATH, folder)
-        if not os.path.exists(folder_path):
-            continue
-        for fname in os.listdir(folder_path):
-            if not fname.endswith(".md"):
-                continue
-            all_notes.add(fname[:-3].lower())
-            fpath = os.path.join(folder_path, fname)
-            with open(fpath, "r", encoding="utf-8") as f:
-                content = f.read()
-            links = re.findall(r'\[\[([^\]]+)\]\]', content)
-            all_links.update(l.lower() for l in links)
-    gaps = all_links - all_notes
-    if not gaps:
-        return "Nessun gap trovato: tutte le entità linkate hanno una nota dedicata."
-    return "Entità menzionate ma senza nota dedicata:\n" + "\n".join(f"- {g}" for g in sorted(gaps))
+    return vault_search_mod.get_gaps()
 
 
 @tool(end=True)
@@ -255,7 +188,7 @@ JSON:"""
 
 
 def _is_known(entity: str) -> bool:
-    result = _get_entity(entity)
+    result = vault_search_mod.get_entity(entity)
     return "non è presente nel vault" not in result
 
 
@@ -288,9 +221,6 @@ def _seed_vault(emit, get_input):
 
 
 # ── Sessione principale ──────────────────────────────────────────────────
-
-MAX_MEMORY_TURNS = 8
-
 
 def run_session(emit, get_input, logger=None):
     """
@@ -327,9 +257,8 @@ def run_session(emit, get_input, logger=None):
         system = _build_system(entity_queue, recent_questions, turn=turn_count)
         turn_count += 1
 
-        # Trim memory
-        while len(shared_memory) > MAX_MEMORY_TURNS:
-            del shared_memory[0]
+        # Trim memory: budget dinamico basato su token, non turni fissi
+        trim_memory(shared_memory, system)
 
         agent = Agent(
             name="intervistatore",
