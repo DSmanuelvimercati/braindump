@@ -730,21 +730,142 @@
   }
   .transcript-actions { display: flex; gap: 8px; justify-content: flex-end; }
 
-  /* ── PROMPTS EDITOR ── */
-  .prompts-view {
-    flex: 1;
-    height: 0;
-    min-height: 0;
-    overflow-y: auto;
-    padding: 12px;
-    display: none;
-    flex-direction: column;
-    gap: 12px;
+  /* ── PROMPTS SCREEN (full overlay, accessibile dalla start screen) ── */
+  .prompts-screen {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    z-index: 60;
   }
-  .prompts-view.active { display: flex; }
-  .prompts-view > * { flex-shrink: 0; }
-  .prompts-view::-webkit-scrollbar { width: 6px; }
-  .prompts-view::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  .prompts-screen.hidden { display: none; }
+  .prompts-screen-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    flex-shrink: 0;
+  }
+  .prompts-screen-header h2 {
+    font-size: 13px; letter-spacing: 4px; color: var(--accent); font-weight: 600;
+  }
+  .prompts-screen-body {
+    flex: 1; overflow-y: auto; padding: 24px;
+    display: flex; flex-direction: column; gap: 20px;
+    max-width: 860px; margin: 0 auto; width: 100%;
+  }
+  .prompts-screen-body::-webkit-scrollbar { width: 6px; }
+  .prompts-screen-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* ── FLOW ARCH (static) ── */
+  .flow-arch-tabs {
+    display: flex; gap: 4px; padding: 10px 12px 0;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .flow-arch-tab {
+    background: none; border: 1px solid var(--border);
+    color: var(--muted); padding: 3px 10px;
+    border-radius: 4px 4px 0 0; font-size: 10px;
+    cursor: pointer; font-family: var(--mono);
+    border-bottom: none; margin-bottom: -1px;
+    transition: all 0.15s;
+  }
+  .flow-arch-tab.active { border-color: var(--accent); color: var(--accent); background: var(--panel); }
+  .flow-arch-content {
+    flex: 1; height: 0; min-height: 0;
+    overflow-y: auto; padding: 16px;
+    display: none; flex-direction: column;
+    align-items: center; gap: 0;
+  }
+  .flow-arch-content.active { display: flex; }
+  .flow-arch-content > * { flex-shrink: 0; }
+  .flow-arch-content::-webkit-scrollbar { width: 6px; }
+  .flow-arch-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* Arch nodes — same palette as live flow nodes */
+  .arch-node {
+    width: 100%; max-width: 320px;
+    border-radius: 8px; border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .arch-node-header {
+    padding: 7px 12px; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .arch-node-badge {
+    font-size: 9px; padding: 1px 6px; border-radius: 3px;
+    font-weight: 600; letter-spacing: 0; text-transform: none;
+  }
+  .arch-node-body {
+    padding: 8px 12px; font-size: 11px; line-height: 1.5;
+    color: var(--muted);
+  }
+  .arch-node.an-system .arch-node-header { background: #1a1a2e; color: #a5b4fc; }
+  .arch-node.an-system .arch-node-badge  { background: #312e81; color: #a5b4fc; }
+  .arch-node.an-tool   .arch-node-header { background: #1a1a0a; color: #fbbf24; }
+  .arch-node.an-tool   .arch-node-badge  { background: #78350f; color: #fbbf24; }
+  .arch-node.an-end    .arch-node-header { background: #1a0a1a; color: #f0abfc; }
+  .arch-node.an-end    .arch-node-badge  { background: #701a75; color: #f0abfc; }
+  .arch-node.an-user   .arch-node-header { background: #0a1a1a; color: #67e8f9; }
+  .arch-node.an-user   .arch-node-badge  { background: #164e63; color: #67e8f9; }
+  .arch-node.an-vault  .arch-node-header { background: #0a1a12; color: #6ee7b7; }
+  .arch-node.an-vault  .arch-node-badge  { background: #064e3b; color: #6ee7b7; }
+  .arch-node.an-loop   .arch-node-header { background: #111; color: var(--muted); }
+  body.light .arch-node.an-system .arch-node-header { background: #ede9fe; color: #6d28d9; }
+  body.light .arch-node.an-tool   .arch-node-header { background: #fef3c7; color: #92400e; }
+  body.light .arch-node.an-end    .arch-node-header { background: #fae8ff; color: #86198f; }
+  body.light .arch-node.an-user   .arch-node-header { background: #cffafe; color: #155e75; }
+  body.light .arch-node.an-vault  .arch-node-header { background: #d1fae5; color: #065f46; }
+
+  .arch-arrow {
+    width: 2px; height: 20px; background: var(--accent); opacity: 0.35;
+    position: relative;
+  }
+  .arch-arrow::after {
+    content: '▼'; position: absolute; bottom: -6px; left: 50%;
+    transform: translateX(-50%); font-size: 8px;
+    color: var(--accent); opacity: 0.8;
+  }
+
+  /* Tool group: side-by-side pills */
+  .arch-tool-group {
+    width: 100%; max-width: 320px;
+    border: 1px dashed #333; border-radius: 8px;
+    padding: 8px 10px; display: flex; flex-wrap: wrap; gap: 5px;
+  }
+  .arch-tool-group-label {
+    width: 100%; font-size: 9px; letter-spacing: 1px; color: var(--muted);
+    text-transform: uppercase; margin-bottom: 4px;
+  }
+  .arch-tool-pill {
+    background: #1a1a0a; color: #fbbf24;
+    border: 1px solid #78350f; border-radius: 4px;
+    padding: 2px 8px; font-size: 10px; font-family: var(--mono);
+  }
+  body.light .arch-tool-pill { background: #fffbeb; color: #92400e; border-color: #fcd34d; }
+
+  /* Branch fork */
+  .arch-fork {
+    width: 100%; max-width: 320px;
+    display: flex; gap: 8px;
+  }
+  .arch-fork-branch {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0;
+  }
+  .arch-fork-label {
+    font-size: 10px; padding: 2px 10px; border-radius: 10px;
+    font-weight: 600; margin-bottom: 4px;
+  }
+  .arch-fork-label.yes { background: #064e3b; color: #6ee7b7; }
+  .arch-fork-label.no  { background: #7f1d1d; color: #fca5a5; }
+
+  .arch-section-label {
+    font-size: 10px; color: var(--accent); font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    padding: 8px 0 4px; align-self: flex-start;
+    max-width: 320px; width: 100%;
+  }
 
   .prompt-card {
     border: 1px solid var(--border);
@@ -879,18 +1000,52 @@
   <p>Scegli la modalità</p>
   <div class="mode-buttons">
     <button class="mode-btn" onclick="startSession('intervistatore')">
-      🎤 Intervistatore
+      Intervistatore
       <div class="mode-desc">domande guidate</div>
     </button>
     <button class="mode-btn" onclick="startSession('biografo')">
-      📖 Biografo
+      Biografo
       <div class="mode-desc">journaling libero</div>
     </button>
     <button class="mode-btn" onclick="startSession('archivista')">
-      🗂 Archivista
+      Archivista
       <div class="mode-desc">riorganizza il vault</div>
     </button>
   </div>
+  <div style="display:flex;gap:10px;margin-top:8px;">
+    <button class="btn-ghost" onclick="openPromptsScreen()">prompts</button>
+    <button class="btn-ghost" onclick="openFlowScreen()">flow</button>
+  </div>
+</div>
+
+<!-- PROMPTS SCREEN -->
+<div class="prompts-screen hidden" id="prompts-screen">
+  <div class="prompts-screen-header">
+    <h2>P R O M P T S</h2>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span style="font-size:11px;color:var(--muted)">Le modifiche entrano in uso dalla sessione successiva</span>
+      <button class="btn-ghost" onclick="closePromptsScreen()">✕ chiudi</button>
+    </div>
+  </div>
+  <div class="prompts-screen-body" id="prompts-screen-body">
+    <div style="color:var(--muted);font-size:12px;">Caricamento...</div>
+  </div>
+</div>
+
+<!-- FLOW ARCH SCREEN -->
+<div class="prompts-screen hidden" id="flow-screen">
+  <div class="prompts-screen-header">
+    <h2>F L O W   A R C H I T E T T U R A</h2>
+    <button class="btn-ghost" onclick="closeFlowScreen()">✕ chiudi</button>
+  </div>
+  <div class="flow-arch-tabs">
+    <button class="flow-arch-tab active" onclick="switchFlowTab('intervistatore', this)">intervistatore</button>
+    <button class="flow-arch-tab" onclick="switchFlowTab('archivista', this)">archivista</button>
+    <button class="flow-arch-tab" onclick="switchFlowTab('extractor', this)">extractor</button>
+  </div>
+  <div class="flow-arch-content active" id="flow-arch-intervistatore"></div>
+  <div class="flow-arch-content" id="flow-arch-archivista"></div>
+  <div class="flow-arch-content" id="flow-arch-extractor"></div>
 </div>
 
 <!-- HEADER -->
@@ -967,13 +1122,11 @@
         <button class="tab-btn active" onclick="switchTab('events')">eventi</button>
         <button class="tab-btn" onclick="switchTab('raw')">raw</button>
         <button class="tab-btn" onclick="switchTab('flow')">flow</button>
-        <button class="tab-btn" onclick="switchTab('prompts')">prompts</button>
       </div>
     </div>
     <div class="activity-feed" id="activity-feed"></div>
     <div class="raw-log" id="raw-log"></div>
     <div class="flow-view" id="flow-view"></div>
-    <div class="prompts-view" id="prompts-view"></div>
   </div>
 </main>
 
@@ -1404,7 +1557,7 @@ function closeModal(e) {
   if (e.target.id === 'modal') document.getElementById('modal').classList.add('hidden');
 }
 
-// ── Tab switching ──────────────────────────────────────────
+// ── Tab switching (activity panel) ────────────────────────
 
 function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -1413,28 +1566,37 @@ function switchTab(tab) {
   document.getElementById('activity-feed').classList.toggle('active', tab === 'events');
   document.getElementById('raw-log').classList.toggle('active', tab === 'raw');
   document.getElementById('flow-view').classList.toggle('active', tab === 'flow');
-  document.getElementById('prompts-view').classList.toggle('active', tab === 'prompts');
-  if (tab === 'prompts') loadPromptsTab();
 }
 
-// ── Prompts editor ─────────────────────────────────────────
+// ── Prompts screen ─────────────────────────────────────────
 
 let _promptsLoaded = false;
 
-async function loadPromptsTab() {
-  const view = document.getElementById('prompts-view');
+function openPromptsScreen() {
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('prompts-screen').classList.remove('hidden');
+  loadPromptsScreen();
+}
+
+function closePromptsScreen() {
+  document.getElementById('prompts-screen').classList.add('hidden');
+  document.getElementById('start-screen').classList.remove('hidden');
+}
+
+async function loadPromptsScreen() {
+  const body = document.getElementById('prompts-screen-body');
   if (_promptsLoaded) return;
-  view.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px">Caricamento...</div>';
+  body.innerHTML = '<div style="color:var(--muted);font-size:12px;">Caricamento...</div>';
   try {
     const res = await fetch('/prompts');
     const data = await res.json();
-    view.innerHTML = '';
+    body.innerHTML = '';
     for (const [name, info] of Object.entries(data)) {
-      view.appendChild(_buildPromptCard(name, info));
+      body.appendChild(_buildPromptCard(name, info));
     }
     _promptsLoaded = true;
   } catch (e) {
-    view.innerHTML = `<div style="color:var(--red);font-size:12px;padding:8px">Errore: ${escHtml(String(e))}</div>`;
+    body.innerHTML = `<div style="color:var(--red);font-size:12px;">Errore: ${escHtml(String(e))}</div>`;
   }
 }
 
@@ -1443,16 +1605,12 @@ function _buildPromptCard(name, info) {
   card.className = 'prompt-card' + (info.is_override ? ' modified' : '');
   card.id = `prompt-card-${name}`;
 
-  const tokenCount = document.createElement('span');
-  tokenCount.className = 'prompt-token-badge';
-  tokenCount.id = `prompt-tokens-${name}`;
-  tokenCount.textContent = `~${info.tokens_est} tok`;
-
   card.innerHTML = `
     <div class="prompt-card-header">
       <span class="prompt-card-title">${escHtml(name)}</span>
       <div class="prompt-card-meta">
         <span class="prompt-override-badge">override</span>
+        <span class="prompt-token-badge" id="prompt-tokens-${name}">~${info.tokens_est} tok</span>
       </div>
     </div>
     <div class="prompt-desc">${escHtml(info.description)}</div>
@@ -1460,34 +1618,30 @@ function _buildPromptCard(name, info) {
     <div class="prompt-actions">
       <button class="btn-save-prompt" onclick="savePrompt('${name}')">Salva</button>
       <button class="btn-reset-prompt" onclick="resetPrompt('${name}')">Ripristina default</button>
-      <span class="prompt-token-badge" id="prompt-tokens-${name}">~${info.tokens_est} tok</span>
       <span class="prompt-save-status" id="prompt-status-${name}">Salvato</span>
     </div>`;
 
-  // Live token counter
   const textarea = card.querySelector(`#prompt-text-${name}`);
   const badge = card.querySelector(`#prompt-tokens-${name}`);
   textarea.addEventListener('input', () => {
     const est = Math.round(textarea.value.length / 4);
     badge.textContent = `~${est} tok`;
-    badge.style.background = est > 800 ? '#3b0a0a' : '';
-    badge.style.color = est > 800 ? '#fca5a5' : '';
+    const over = est > 800;
+    badge.style.background = over ? '#3b0a0a' : '';
+    badge.style.color = over ? '#fca5a5' : '';
   });
-
   return card;
 }
 
 async function savePrompt(name) {
   const textarea = document.getElementById(`prompt-text-${name}`);
-  const text = textarea.value;
   const statusEl = document.getElementById(`prompt-status-${name}`);
   const card = document.getElementById(`prompt-card-${name}`);
-
   try {
     const res = await fetch(`/prompts/${name}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text: textarea.value }),
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
@@ -1507,14 +1661,199 @@ async function resetPrompt(name) {
   if (!confirm(`Ripristinare il prompt "${name}" al default?`)) return;
   try {
     await fetch(`/prompts/${name}`, { method: 'DELETE' });
-    // Ricarica i dati freschi
     _promptsLoaded = false;
-    const view = document.getElementById('prompts-view');
-    view.innerHTML = '';
-    await loadPromptsTab();
+    await loadPromptsScreen();
   } catch (e) {
     alert('Errore: ' + e.message);
   }
+}
+
+// ── Flow arch screen (statico) ─────────────────────────────
+
+function openFlowScreen() {
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('flow-screen').classList.remove('hidden');
+  buildFlowArch();
+}
+
+function closeFlowScreen() {
+  document.getElementById('flow-screen').classList.add('hidden');
+  document.getElementById('start-screen').classList.remove('hidden');
+}
+
+function switchFlowTab(name, btn) {
+  document.querySelectorAll('.flow-arch-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.flow-arch-content').forEach(c => c.classList.remove('active'));
+  document.getElementById(`flow-arch-${name}`).classList.add('active');
+}
+
+let _flowArchBuilt = false;
+
+function buildFlowArch() {
+  if (_flowArchBuilt) return;
+  _flowArchBuilt = true;
+  _buildFlowIntervistatore();
+  _buildFlowArchivista();
+  _buildFlowExtractor();
+}
+
+// ── Arch helpers ───────────────────────────────────────────
+
+function _an(type, label, badge, body) {
+  const n = document.createElement('div');
+  n.className = `arch-node an-${type}`;
+  n.innerHTML = `<div class="arch-node-header"><span>${escHtml(label)}</span><span class="arch-node-badge">${escHtml(badge)}</span></div>`
+    + (body ? `<div class="arch-node-body">${escHtml(body)}</div>` : '');
+  return n;
+}
+
+function _arr() {
+  const a = document.createElement('div'); a.className = 'arch-arrow'; return a;
+}
+
+function _label(text) {
+  const l = document.createElement('div'); l.className = 'arch-section-label';
+  l.textContent = text; return l;
+}
+
+function _toolGroup(tools) {
+  const g = document.createElement('div'); g.className = 'arch-tool-group';
+  g.innerHTML = '<div class="arch-tool-group-label">tool disponibili</div>'
+    + tools.map(t => `<span class="arch-tool-pill">${escHtml(t)}()</span>`).join('');
+  return g;
+}
+
+function _fork(yesNodes, noNodes) {
+  const f = document.createElement('div'); f.className = 'arch-fork';
+  const yes = document.createElement('div'); yes.className = 'arch-fork-branch';
+  yes.innerHTML = '<div class="arch-fork-label yes">approva</div>';
+  yesNodes.forEach(n => { yes.appendChild(n); yes.appendChild(_arr()); });
+  const no = document.createElement('div'); no.className = 'arch-fork-branch';
+  no.innerHTML = '<div class="arch-fork-label no">rifiuta</div>';
+  noNodes.forEach(n => { no.appendChild(n); no.appendChild(_arr()); });
+  f.appendChild(yes); f.appendChild(no); return f;
+}
+
+// ── Intervistatore flow ────────────────────────────────────
+
+function _buildFlowIntervistatore() {
+  const c = document.getElementById('flow-arch-intervistatore');
+  const add = (...nodes) => nodes.forEach(n => c.appendChild(n));
+
+  add(
+    _label('INIT'),
+    _an('system', 'SEED VAULT', 'se vault vuoto', 'Chiede presentazione iniziale → salva via extractor'),
+    _arr(),
+
+    _label('LOOP PER OGNI DOMANDA'),
+    _an('system', 'BUILD SYSTEM', 'ogni turno', '_build_system(entity_queue, recent_questions, turn)\nprompt letto da core.prompts.get("intervistatore")'),
+    _arr(),
+    _an('system', 'TRIM MEMORY', 'token budget', 'trim_memory(shared_memory, system)\nRimuove turni vecchi fino a rientrare in OLLAMA_NUM_CTX - 512'),
+    _arr(),
+    _an('system', 'AGENT.RUN()', 'datapizza-ai', 'max_steps=8, terminate_on_text=True\nLoop interno LLM → tool → LLM'),
+    _arr(),
+
+    _label('TOOL CALLS (loop interno agent)'),
+    _toolGroup(['vault_read', 'vault_search', 'vault_get_entity', 'vault_get_gaps']),
+    _arr(),
+    _an('end', 'ASK_USER()', '@tool(end=True)', 'Ferma il loop agent.\nRitorna {"_tool":"ask_user","question":"..."}'),
+    _arr(),
+
+    _label('RISPOSTA UTENTE'),
+    _an('user', 'GET_INPUT()', 'attende WS', 'Blocca il thread finché arriva user_input dal WebSocket'),
+    _arr(),
+  );
+
+  // Fork: meta-comandi vs risposta normale
+  add(_an('loop', 'META-COMANDI?', 'fork', '[[CHANGE_TOPIC]] → svuota entity_queue\n[[TOPIC:X]] → inserisce X in testa alla coda'));
+  add(_arr());
+
+  add(
+    _label('ELABORAZIONE RISPOSTA'),
+    _an('vault', 'ENTITY EXTRACTION', 'LLM call separata', 'think() → estrae nomi propri\nNuove entità → entity_queue'),
+    _arr(),
+    _an('vault', 'EXTRACTOR.EXTRACT()', 'LLM call', 'Trascrizione D+R → operazioni vault\nprompt: core.prompts.get("extractor")'),
+    _arr(),
+    _an('vault', 'EXTRACTOR.APPLY()', 'vault.merge()', 'Scrive nel vault Obsidian\nEmette vault_write al frontend'),
+    _arr(),
+    _an('loop', 'LOOP ↩', 'prossima domanda', 'Torna a BUILD SYSTEM con turn+1'),
+  );
+}
+
+// ── Archivista flow ────────────────────────────────────────
+
+function _buildFlowArchivista() {
+  const c = document.getElementById('flow-arch-archivista');
+  const add = (...nodes) => nodes.forEach(n => c.appendChild(n));
+
+  add(
+    _label('INIT'),
+    _an('system', 'INIT MEMORY', 'persistente', 'shared_memory = Memory()\nPersiste tra tutti i cicli propose'),
+    _arr(),
+
+    _label('LOOP PROPOSTA'),
+    _an('system', 'BUILD SYSTEM', 'ogni ciclo', '_build_system(feedback_history)\nprompt: core.prompts.get("archivista") + feedback'),
+    _arr(),
+    _an('system', 'TRIM MEMORY', 'token budget', 'trim_memory(shared_memory, system)'),
+    _arr(),
+    _an('system', 'AGENT.RUN()', 'datapizza-ai', 'max_steps=12, terminate_on_text=True'),
+    _arr(),
+
+    _label('TOOL CALLS (loop interno agent)'),
+    _toolGroup(['archivista_list', 'archivista_read', 'archivista_write', 'vault_list_folders', 'vault_read_folder', 'vault_read_note', 'vault_audit', 'vault_find_duplicates']),
+    _arr(),
+  );
+
+  add(
+    _label('END TOOLS (fermano il loop)'),
+    _an('end', 'PROPOSE()', '@tool(end=True)', 'motivation, before_json, after_json, delete_json\nRitorna JSON con _tool:"propose"'),
+    _arr(),
+    _an('user', 'MOSTRA PROPOSTA', 'UI', 'Frontend mostra diff before/after\nAttende approvazione utente'),
+    _arr(),
+  );
+
+  const yesNodes = [
+    _an('vault', '_EXECUTE_OPERATION()', 'vault.write + delete', 'Scrive note "after", elimina note "delete"\nEmette vault_write al frontend'),
+    _an('system', 'INJECT FEEDBACK', 'memory', 'shared_memory.add_turn("Approvata ed eseguita")\nops_count += 1'),
+  ];
+  const noNodes = [
+    _an('system', 'INJECT FEEDBACK', 'memory', 'shared_memory.add_turn("Rifiutata. Motivo: ...")\nfeedback_history.append(motivo)'),
+  ];
+  add(_fork(yesNodes, noNodes));
+  add(_arr());
+
+  add(
+    _an('loop', 'LOOP ↩', 'prossima proposta', 'Torna a BUILD SYSTEM con feedback aggiornato'),
+    _arr(),
+    _an('end', 'DONE()', '@tool(end=True)', 'Termina la sessione.\nRitorna {"_tool":"done","summary":"..."}'),
+  );
+}
+
+// ── Extractor flow ─────────────────────────────────────────
+
+function _buildFlowExtractor() {
+  const c = document.getElementById('flow-arch-extractor');
+  const add = (...nodes) => nodes.forEach(n => c.appendChild(n));
+
+  add(
+    _label('CHIAMATO DA: intervistatore + biografo'),
+    _an('system', 'CONTEXT SUMMARY', 'vault.context_summary()', 'Max 3000 chars del vault esistente\nUsato per evitare duplicati'),
+    _arr(),
+    _an('system', 'BUILD PROMPT', 'template', '"Contesto vault:\\n{context}\\n\\nTrascrizione:\\n{transcript}\\n\\nRestituisci JSON"'),
+    _arr(),
+    _an('system', 'THINK()', 'Ollama call', 'core.prompts.get("extractor") come system\nNessun tool call — output testo puro'),
+    _arr(),
+    _an('system', 'PARSE JSON', 're.search + json.loads', 'Cerca { ... } nella risposta\nErrori loggati in console, ritorna []'),
+    _arr(),
+
+    _label('OUTPUT: lista operazioni'),
+    _an('vault', 'OPERAZIONE MERGE', 'azione possibile', '{"action":"merge","folder":"...","title":"...","content":"...","tags":[...]}\nvault.merge() — aggiunge a nota esistente o crea'),
+    _arr(),
+
+    _label('FALLBACK'),
+    _an('loop', 'JSON INVALIDO', 'silent skip', 'Se parse fallisce → log + ritorna []\nNessuna scrittura nel vault'),
+  );
 }
 
 // ── Raw log ────────────────────────────────────────────────
