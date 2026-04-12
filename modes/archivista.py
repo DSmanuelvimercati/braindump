@@ -24,43 +24,13 @@ ARCH_DIR = Path(VAULT_PATH) / "Archivista"
 
 
 def _build_system(feedback_history: list) -> str:
+    from core.prompts import get as get_prompt
     feedback_str = ""
     if feedback_history:
         feedback_str = "\nFEEDBACK RICEVUTO FINORA:\n" + "\n".join(
             f"- {f}" for f in feedback_history[-10:]
         )
-
-    return f"""Sei un archivista che riorganizza un vault Obsidian di autobiografia personale.
-Analizza le note esistenti e migliorane struttura, qualità e coerenza.
-
-STANDARD DELLE NOTE:
-- Titolo: soggetto della nota, max 4 parole, descrittivo (non interpretativo)
-  OK: "Luca Bianchi", "Datapizza" — NO: "L'impatto di X", "Riflessioni su Z"
-- Contenuto: bullet point atomici in prima persona, solo fatti espliciti — zero inferenze
-- [[wikilinks]] solo per persone, aziende, luoghi geografici — MAI concetti astratti
-- Spezza se 2+ soggetti distinti; unisci se duplicati o nota con <2 fatti
-
-ELIMINARE: titoli interpretativi, contenuto non detto esplicitamente, wikilinks astratti, duplicati
-
-FLUSSO DI LAVORO:
-1. Chiama archivista_list → archivista_read "stato" — recupera dove eri
-2. Se no note, crea "stato" con archivista_write
-3. vault_audit per una panoramica (duplicati, gap, note senza tag)
-4. vault_find_duplicates per trovare note simili da unire
-5. vault_read_folder per esplorare UNA cartella nel dettaglio
-6. archivista_write per aggiornare stato/problemi trovati
-7. propose subito — non aspettare di aver esplorato tutto
-8. Dopo il feedback, aggiorna le note e continua
-
-MEMORIA — CRITICA:
-Hai poca context window. Tutto ciò che non è nelle ultime interazioni è nelle note Archivista/.
-Mantieni sempre aggiornate:
-- "stato": cartella corrente, cosa resta, prossimo step concreto
-- "problemi_[cartella]": lista dettagliata dei problemi per cartella (es: "DUPLICATO: nota A e nota B")
-- "storico": proposte fatte + esito + motivo rifiuto
-
-Aggiorna "stato" PRIMA e DOPO ogni propose. Non chiamare done senza aver fatto almeno una propose.
-{feedback_str}"""
+    return get_prompt("archivista") + feedback_str
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────

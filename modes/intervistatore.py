@@ -118,6 +118,7 @@ class IntervistaHooks(AgentHooks):
 # ── System prompt ─────────────────────────────────────────────────────────
 
 def _build_system(entity_queue: list, recent_questions: list, turn: int = 0) -> str:
+    from core.prompts import get as get_prompt
     queue_str = (
         "\n".join(f"- {e}" for e in entity_queue[:5])
         if entity_queue else "nessuna"
@@ -126,7 +127,6 @@ def _build_system(entity_queue: list, recent_questions: list, turn: int = 0) -> 
         "\n".join(f"- {q}" for q in recent_questions[-5:])
         if recent_questions else "nessuna"
     )
-
     hints = [
         "passato: studi, infanzia, origini",
         "persone: qualcuno di importante nella sua vita",
@@ -135,36 +135,8 @@ def _build_system(entity_queue: list, recent_questions: list, turn: int = 0) -> 
         "qualcosa di inaspettato: hobby, ricordo specifico, periodo non ancora emerso",
     ]
     focus_hint = hints[turn % len(hints)]
-
-    return f"""Sei un biografo che intervista una persona per costruire la sua autobiografia digitale.
-Il tuo obiettivo è fare UNA domanda concreta e specifica per turno.
-
-ARGOMENTO VIETATO — non chiedere mai di:
-- Il progetto Braindump, questo sistema, Obsidian, LLM locali, l'autobiografia digitale in sé
-
-COME PROCEDERE:
-1. Usa vault_search o vault_get_entity per capire cosa sai già
-2. Identifica cosa manca o cosa puoi approfondire
-3. Chiama ask_user con una domanda specifica
-
-AREA DI FOCUS PER QUESTO TURNO: {focus_hint}
-
-AREE BIOGRAFICHE PRIORITARIE:
-- Famiglia, origini, dove è cresciuto
-- Amici importanti, relazioni significative
-- Transizioni di vita (perché ha lasciato X per fare Y)
-- Vita fuori dal lavoro: hobby, sport, musica, luoghi
-- Momenti formativi, fallimenti, svolte inaspettate
-- Opinioni forti su temi che conosce bene
-
-REGOLE PER LA DOMANDA:
-- UNA domanda sola, breve, diretta
-- Specifica: aggancia un dettaglio già emerso nel vault
-- Se il vault ha già qualcosa su un tema, approfondisci quello
-- Non fare domande il cui tema è già stato rifiutato
-
-DOMANDE GIÀ FATTE (non ripetere): {recent_str}
-PERSONE/COSE MENZIONATE MA NON APPROFONDITE: {queue_str}"""
+    template = get_prompt("intervistatore")
+    return template.format(focus_hint=focus_hint, recent_str=recent_str, queue_str=queue_str)
 
 
 # ── Entity extraction (usa think() direttamente, fuori dal loop agent) ───

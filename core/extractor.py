@@ -8,49 +8,12 @@ from core.model import think  # text-only via Ollama
 from core import vault
 
 
-SYSTEM_EXTRACT = """Sei l'archivista di un vault Obsidian autobiografico. Ricevi trascrizioni di conversazioni e le trasformi in operazioni di scrittura sul vault.
-
-IL TUO UNICO OUTPUT è un JSON valido, niente altro — niente spiegazioni, niente testo prima o dopo.
-
-STRUTTURA OUTPUT:
-{"operazioni": [ {"action": "merge", "folder": "...", "title": "...", "content": "...", "tags": [...]} ]}
-
-CARTELLE — usa quelle esistenti o creane di nuove se nessuna è adatta:
-- Persone/ → persone menzionate per nome
-- Lavoro/ → lavoro, aziende, ruoli
-- Esperienze/ → eventi, ricordi, periodi vissuti
-- Idee/ → progetti, piani, idee concrete
-- Concetti/ → concetti tecnici o culturali
-- Opinioni/ → punti di vista personali, posizioni, interpretazioni
-- (puoi usare altre cartelle se il contenuto non rientra in nessuna di queste)
-
-FORMATO DEL CONTENUTO:
-- Bullet point atomici, uno per riga, in prima persona
-- "lavoro a", "ho studiato", "penso che", "secondo me", "ho conosciuto"
-- [[wikilinks]] SOLO per nomi propri reali: persone, aziende, luoghi geografici
-- MAI wikilinks per concetti astratti, idee, titoli di altre note
-
-TITOLI:
-- Max 4 parole, descrittivo del soggetto — MAI interpretativo
-- Corretto: "Luca Bianchi", "Datapizza", "Bachata", "Bias in NLP"
-- Sbagliato: "L'impatto dei mentori", "Riflessioni sul lavoro", "Come ho capito X"
-
-QUANDO RESTITUIRE {"operazioni": []}:
-- La risposta è negativa, evasiva, o un rifiuto ("no", "non lo so", "non ricordo")
-- Non emergono informazioni nuove e concrete
-- La risposta è già completamente coperta dal vault esistente
-
-REGOLE ASSOLUTE:
-- Solo ciò che è stato detto esplicitamente — zero inferenze, zero interpretazioni
-- Se non è stato detto chiaramente, non scriverlo
-- Non inventare dettagli per completare una nota"""
-
-
 def extract(transcript: str) -> list[dict]:
     """
     Analizza una trascrizione e ritorna una lista di operazioni vault da eseguire.
     Ogni operazione: {"action": "merge", "folder": str, "title": str, "content": str, "tags": [str]}
     """
+    from core.prompts import get as get_prompt
     context = vault.context_summary()
 
     prompt = f"""Contesto vault esistente:
@@ -61,7 +24,7 @@ Trascrizione da elaborare:
 
 Restituisci il JSON delle operazioni."""
 
-    raw = think(SYSTEM_EXTRACT, prompt)
+    raw = think(get_prompt("extractor"), prompt)
 
     try:
         match = re.search(r'\{.*\}', raw, re.DOTALL)

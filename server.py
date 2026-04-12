@@ -10,7 +10,7 @@ import queue
 import threading
 from pathlib import Path
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Body
 from fastapi.responses import HTMLResponse, JSONResponse
 import uvicorn
 
@@ -31,6 +31,35 @@ HTML = (Path(__file__).parent / "static" / "index.html").read_text(encoding="utf
 @app.get("/")
 async def root():
     return HTMLResponse(HTML)
+
+
+@app.get("/prompts")
+async def get_prompts():
+    """Ritorna tutti i prompt con testo attivo, default e metadata."""
+    from core.prompts import all_prompts
+    return JSONResponse(all_prompts())
+
+
+@app.put("/prompts/{name}")
+async def save_prompt(name: str, body: dict = Body(...)):
+    """Salva un override per il prompt specificato."""
+    from core import prompts as p
+    text = body.get("text", "")
+    if not text.strip():
+        return JSONResponse({"error": "text vuoto"}, status_code=400)
+    try:
+        p.save(name, text)
+        return JSONResponse({"ok": True, "tokens_est": len(text) // 4})
+    except ValueError as e:
+        return JSONResponse({"error": str(e)}, status_code=404)
+
+
+@app.delete("/prompts/{name}")
+async def reset_prompt(name: str):
+    """Ripristina il prompt al default (rimuove l'override)."""
+    from core import prompts as p
+    p.reset(name)
+    return JSONResponse({"ok": True})
 
 
 @app.get("/vault/note")

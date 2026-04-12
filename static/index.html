@@ -730,6 +730,133 @@
   }
   .transcript-actions { display: flex; gap: 8px; justify-content: flex-end; }
 
+  /* ── PROMPTS EDITOR ── */
+  .prompts-view {
+    flex: 1;
+    height: 0;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 12px;
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .prompts-view.active { display: flex; }
+  .prompts-view > * { flex-shrink: 0; }
+  .prompts-view::-webkit-scrollbar { width: 6px; }
+  .prompts-view::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .prompt-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .prompt-card.modified { border-color: var(--amber); }
+  .prompt-card-header {
+    padding: 8px 12px;
+    background: #111;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  body.light .prompt-card-header { background: #f0f0f0; }
+  .prompt-card-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .prompt-card-meta {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .prompt-token-badge {
+    font-size: 10px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    background: #1a1a2e;
+    color: #a5b4fc;
+    font-weight: 600;
+  }
+  body.light .prompt-token-badge { background: #ede9fe; color: #6d28d9; }
+  .prompt-override-badge {
+    font-size: 10px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    background: #1a1a0a;
+    color: var(--amber);
+    display: none;
+  }
+  .prompt-card.modified .prompt-override-badge { display: inline; }
+  .prompt-desc {
+    padding: 6px 12px;
+    font-size: 11px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    line-height: 1.4;
+  }
+  .prompt-textarea {
+    width: 100%;
+    min-height: 200px;
+    max-height: 400px;
+    background: var(--input-bg);
+    border: none;
+    color: var(--text);
+    padding: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.6;
+    resize: vertical;
+    outline: none;
+    display: block;
+  }
+  .prompt-textarea:focus { background: #111; }
+  body.light .prompt-textarea:focus { background: #fafafa; }
+  .prompt-actions {
+    padding: 8px 12px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    border-top: 1px solid var(--border);
+    background: #0d0d0d;
+  }
+  body.light .prompt-actions { background: #fafafa; }
+  .btn-save-prompt {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 4px 14px;
+    border-radius: var(--radius);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-save-prompt:hover { opacity: 0.85; }
+  .btn-reset-prompt {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 4px 12px;
+    border-radius: var(--radius);
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .btn-reset-prompt:hover { border-color: var(--red); color: var(--red); }
+  .prompt-save-status {
+    font-size: 11px;
+    color: var(--green);
+    margin-left: auto;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .prompt-save-status.visible { opacity: 1; }
+
   @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
   .spinner {
     display: inline-block;
@@ -840,11 +967,13 @@
         <button class="tab-btn active" onclick="switchTab('events')">eventi</button>
         <button class="tab-btn" onclick="switchTab('raw')">raw</button>
         <button class="tab-btn" onclick="switchTab('flow')">flow</button>
+        <button class="tab-btn" onclick="switchTab('prompts')">prompts</button>
       </div>
     </div>
     <div class="activity-feed" id="activity-feed"></div>
     <div class="raw-log" id="raw-log"></div>
     <div class="flow-view" id="flow-view"></div>
+    <div class="prompts-view" id="prompts-view"></div>
   </div>
 </main>
 
@@ -1284,6 +1413,108 @@ function switchTab(tab) {
   document.getElementById('activity-feed').classList.toggle('active', tab === 'events');
   document.getElementById('raw-log').classList.toggle('active', tab === 'raw');
   document.getElementById('flow-view').classList.toggle('active', tab === 'flow');
+  document.getElementById('prompts-view').classList.toggle('active', tab === 'prompts');
+  if (tab === 'prompts') loadPromptsTab();
+}
+
+// ── Prompts editor ─────────────────────────────────────────
+
+let _promptsLoaded = false;
+
+async function loadPromptsTab() {
+  const view = document.getElementById('prompts-view');
+  if (_promptsLoaded) return;
+  view.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px">Caricamento...</div>';
+  try {
+    const res = await fetch('/prompts');
+    const data = await res.json();
+    view.innerHTML = '';
+    for (const [name, info] of Object.entries(data)) {
+      view.appendChild(_buildPromptCard(name, info));
+    }
+    _promptsLoaded = true;
+  } catch (e) {
+    view.innerHTML = `<div style="color:var(--red);font-size:12px;padding:8px">Errore: ${escHtml(String(e))}</div>`;
+  }
+}
+
+function _buildPromptCard(name, info) {
+  const card = document.createElement('div');
+  card.className = 'prompt-card' + (info.is_override ? ' modified' : '');
+  card.id = `prompt-card-${name}`;
+
+  const tokenCount = document.createElement('span');
+  tokenCount.className = 'prompt-token-badge';
+  tokenCount.id = `prompt-tokens-${name}`;
+  tokenCount.textContent = `~${info.tokens_est} tok`;
+
+  card.innerHTML = `
+    <div class="prompt-card-header">
+      <span class="prompt-card-title">${escHtml(name)}</span>
+      <div class="prompt-card-meta">
+        <span class="prompt-override-badge">override</span>
+      </div>
+    </div>
+    <div class="prompt-desc">${escHtml(info.description)}</div>
+    <textarea class="prompt-textarea" id="prompt-text-${name}" spellcheck="false">${escHtml(info.text)}</textarea>
+    <div class="prompt-actions">
+      <button class="btn-save-prompt" onclick="savePrompt('${name}')">Salva</button>
+      <button class="btn-reset-prompt" onclick="resetPrompt('${name}')">Ripristina default</button>
+      <span class="prompt-token-badge" id="prompt-tokens-${name}">~${info.tokens_est} tok</span>
+      <span class="prompt-save-status" id="prompt-status-${name}">Salvato</span>
+    </div>`;
+
+  // Live token counter
+  const textarea = card.querySelector(`#prompt-text-${name}`);
+  const badge = card.querySelector(`#prompt-tokens-${name}`);
+  textarea.addEventListener('input', () => {
+    const est = Math.round(textarea.value.length / 4);
+    badge.textContent = `~${est} tok`;
+    badge.style.background = est > 800 ? '#3b0a0a' : '';
+    badge.style.color = est > 800 ? '#fca5a5' : '';
+  });
+
+  return card;
+}
+
+async function savePrompt(name) {
+  const textarea = document.getElementById(`prompt-text-${name}`);
+  const text = textarea.value;
+  const statusEl = document.getElementById(`prompt-status-${name}`);
+  const card = document.getElementById(`prompt-card-${name}`);
+
+  try {
+    const res = await fetch(`/prompts/${name}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    card.classList.add('modified');
+    statusEl.textContent = `Salvato (${data.tokens_est} tok)`;
+    statusEl.classList.add('visible');
+    setTimeout(() => statusEl.classList.remove('visible'), 2500);
+  } catch (e) {
+    statusEl.textContent = 'Errore: ' + e.message;
+    statusEl.style.color = 'var(--red)';
+    statusEl.classList.add('visible');
+    setTimeout(() => { statusEl.classList.remove('visible'); statusEl.style.color = ''; }, 3000);
+  }
+}
+
+async function resetPrompt(name) {
+  if (!confirm(`Ripristinare il prompt "${name}" al default?`)) return;
+  try {
+    await fetch(`/prompts/${name}`, { method: 'DELETE' });
+    // Ricarica i dati freschi
+    _promptsLoaded = false;
+    const view = document.getElementById('prompts-view');
+    view.innerHTML = '';
+    await loadPromptsTab();
+  } catch (e) {
+    alert('Errore: ' + e.message);
+  }
 }
 
 // ── Raw log ────────────────────────────────────────────────
